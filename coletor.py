@@ -11,7 +11,13 @@ AREAS = ["TI", "Tecnologia", "Dados", "Sistemas", "Desenvolvimento",
          "Software", "Suporte", "Infraestrutura", "BI", "Automação"]
 TERMOS = [f"{forma} {area}" for forma in FORMAS for area in AREAS]
 
-#def coletar_termo(termo)
+def coletar_termo(termo, limit=12, max_vagas=600):
+    vagas = []
+    offset = 0
+    while True:
+        resposta = requests.get(URL, params={"jobName": termo, "limit": limit, "offset": offset}, headers=HEADERS, timeout=15)
+        resposta.raise_for_status()
+        
     
 
 if __name__ == "__main__":
