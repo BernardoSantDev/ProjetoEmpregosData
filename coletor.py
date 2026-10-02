@@ -17,7 +17,9 @@ def coletar_termo(termo, limit=12, max_vagas=600):
     while True:
         resposta = requests.get(URL, params={"jobName": termo, "limit": limit, "offset": offset}, headers=HEADERS, timeout=15)
         resposta.raise_for_status()
-        
+        corpo = resposta.json()
+        pagina = corpo["data"]
+        vagas.extend
     
 
 if __name__ == "__main__":
