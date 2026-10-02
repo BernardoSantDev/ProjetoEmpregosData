@@ -45,7 +45,23 @@ if __name__ == "__main__":
     df = df[df["type"] == "vacancy_type_internship"]
     print("Só estágios:", len(df))
 
-    df.to_csv("vagas_brutas.csv", index=False, encoding="utf-8-sig")
-    print("Salvo em vagas_brutas.csv")
+    # LIMPAR CVS
+    colunas_uteis = {
+        "name": "titulo",
+        "careerPageName": "empresa",
+        "city": "cidade",
+        "state": "estado",
+        "workplaceType": "modalidade",
+        "publishedDate": "data_publicacao",
+        "applicationDeadline": "prazo_inscricao",
+        "jobUrl": "link",
+        "termo_busca": "termo_busca"
+    }
 
+    df_enxuto = df[list(colunas_uteis.keys())].rename(columns=colunas_uteis)
+    df_enxuto["data_publicacao"] = pd.to_datetime(df_enxuto["data_publicacao"]).dt.date
+    df_enxuto["prazo_inscricao"] = pd.to_datetime(df_enxuto["prazo_inscricao"]).dt.date
+
+    df_enxuto.to_csv("vagas_brutas.csv", index=False, encoding="utf-8-sig")
+    print("Salvo em vagas_brutas.csv")
 
