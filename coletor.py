@@ -24,7 +24,8 @@ def coletar_termo(termo, limit=12, max_vagas=600):
         if len(pagina) < limit or len(vagas) >= max_vagas:
             break
         time.sleep(1)
-    
+    print(f"{termo}: {len(vagas)} vagas coletadas")
+    return vagas
 
 if __name__ == "__main__":
     todas = []
