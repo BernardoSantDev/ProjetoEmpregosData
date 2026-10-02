@@ -37,4 +37,9 @@ if __name__ == "__main__":
         time.sleep(1)
 
 
+    df = pd.DataFrame(todas)
+    print("\nAntes de remover duplicatas:", len(df))
+    df.drop_duplicates(subset="id")
+    print("Depois de remover duplicatas:", len(df))
+
 
