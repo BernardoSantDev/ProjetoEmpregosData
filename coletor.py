@@ -45,7 +45,7 @@ if __name__ == "__main__":
     df = df[df["type"] == "vacancy_type_internship"]
     print("Só estágios:", len(df))
 
-    df.to_csv("vagas_brutas.csv", index=False, encolding="utf-8-sig")
+    df.to_csv("vagas_brutas.csv", index=False, encoding="utf-8-sig")
     print("Salvo em vagas_brutas.csv")
 
 
