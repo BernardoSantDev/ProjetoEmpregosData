@@ -11,7 +11,7 @@ AREAS = ["TI", "Tecnologia", "Dados", "Sistemas", "Desenvolvimento",
          "Software", "Suporte", "Infraestrutura", "BI", "Automação"]
 TERMOS = [f"{forma} {area}" for forma in FORMAS for area in AREAS]
 
-
+if __name__ == "__main__":
 
 
 
