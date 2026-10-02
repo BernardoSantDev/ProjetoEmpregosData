@@ -42,4 +42,9 @@ if __name__ == "__main__":
     df.drop_duplicates(subset="id")
     print("Depois de remover duplicatas:", len(df))
 
+    df = df[df["type"] == "vacancy_type_internship"]
+    print("Só estágios:", len(df))
+
+    
+
 
