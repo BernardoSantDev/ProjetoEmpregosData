@@ -64,4 +64,3 @@ if __name__ == "__main__":
 
     df_enxuto.to_csv("vagas_brutas.csv", index=False, encoding="utf-8-sig")
     print("Salvo em vagas_brutas.csv")
-
