@@ -19,7 +19,11 @@ def coletar_termo(termo, limit=12, max_vagas=600):
         resposta.raise_for_status()
         corpo = resposta.json()
         pagina = corpo["data"]
-        vagas.extend
+        vagas.extend(pagina)
+        offset += limit
+        if len(pagina) < limit or len(vagas) >= max_vagas:
+            break
+        time.sleep(1)
     
 
 if __name__ == "__main__":
