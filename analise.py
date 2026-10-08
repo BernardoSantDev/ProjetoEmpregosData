@@ -69,4 +69,8 @@ TECNOLOGIAS = {
 for nome, padrao in TECNOLOGIAS.items():
     df[nome] = df["descricao_limpa"].str.contains(padrao, flags=re.I, regex=True)
 
+contagem = df[list(TECNOLOGIAS)].sum().sort_values(ascending=False)
+percentual = (contagem / len(df) * 100).round(1)
 
+print("\nTecnologias mais pedidas:")
+print(pd.DataFrame({"vagas": contagem, "% das vagas": percentual}))
