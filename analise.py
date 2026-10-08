@@ -9,9 +9,9 @@ print("Vagas no CSV:", len(df))
 def limpar_texto(texto):
     if not isinstance(texto, str):
         return ""
-
-    puro = BeautifulSoup(texto, 'html.parser').get_text(" ")
+    puro = BeautifulSoup(texto, "html.parser").get_text(" ")
     return " ".join(puro.split())
+
 
 df["descricao_limpa"] = df["description"].apply(limpar_texto)
 
@@ -24,7 +24,6 @@ INCLUIR = (
     r"|intelig[eê]ncia artificial|\bia\b|est[aá]gio em tecnologia|estagi[aá]rio em tecnologia"
     r"|governan[cç]a de ti|qualidade de software|testes de software)"
 )
-
 EXCLUIR = (
     r"(?:neg[oó]cios|humano|organizacional|fornecedores|treinamento|pesquisa e desenvolvimento"
     r"|arquitetura|engenharia civil|ferramentais|suporte ao cliente|suporte comercial"
@@ -34,8 +33,7 @@ EXCLUIR = (
     r"|matem[aá]tica|telecom|eletroeletr|instrumenta|industrial|opera[cç][oõ]es)"
 )
 
-
-titulo = df['name'].str.lower()
+titulo = df["name"].str.lower()
 eh_ti = titulo.str.contains(INCLUIR, regex=True) & ~titulo.str.contains(EXCLUIR, regex=True)
 df = df[eh_ti].copy()
 print("Vagas de TI (antes de remover repetidas):", len(df))
