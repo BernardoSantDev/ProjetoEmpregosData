@@ -39,13 +39,15 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(todas)
     print("\nAntes de remover duplicatas:", len(df))
-    df.drop_duplicates(subset="id")
+    df = df.drop_duplicates(subset="id")
     print("Depois de remover duplicatas:", len(df))
 
     df = df[df["type"] == "vacancy_type_internship"]
     print("Só estágios:", len(df))
 
-    # LIMPAR CVS
+    df.to_csv("vagas_brutas.csv", index=False, encoding="utf-8-sig")
+    print("Salvo em vagas_brutas.csv")
+
     colunas_uteis = {
         "name": "titulo",
         "careerPageName": "empresa",
@@ -62,5 +64,5 @@ if __name__ == "__main__":
     df_enxuto["data_publicacao"] = pd.to_datetime(df_enxuto["data_publicacao"]).dt.date
     df_enxuto["prazo_inscricao"] = pd.to_datetime(df_enxuto["prazo_inscricao"]).dt.date
 
-    df_enxuto.to_csv("vagas_brutas.csv", index=False, encoding="utf-8-sig")
-    print("Salvo em vagas_brutas.csv")
+    df_enxuto.to_csv("vagas_brutas_legivel.csv", index=False, encoding="utf-8-sig")
+    print("Salvo em vagas_brutas_legivel.csv")

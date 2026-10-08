@@ -1,1 +1,4 @@
 .venv
+vagas_brutas.csv
+vagas_limpas.csv
+vagas_brutas_legivel.csv
