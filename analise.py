@@ -35,6 +35,11 @@ EXCLUIR = (
 )
 
 
+titulo = df['name'].str.lower()
+eh_ti = titulo.str.contains(INCLUIR, regex=True) & ~titulo.str.contains(EXCLUIR, regex=True)
+df = df[eh_ti].copy()
+print("Vagas de TI (antes de remover repetidas):", len(df))
+
 
 
 
