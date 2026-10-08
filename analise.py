@@ -74,3 +74,13 @@ percentual = (contagem / len(df) * 100).round(1)
 
 print("\nTecnologias mais pedidas:")
 print(pd.DataFrame({"vagas": contagem, "% das vagas": percentual}))
+
+print("\nEstados:")
+print(df["state"].fillna("Remoto / sem local").value_counts().head(10))
+
+print("\nCidades:")
+print(df["city"].fillna("Remoto / sem local").value_counts().head(10))
+
+print("\nModalidade:")
+print(df["workplaceType"].value_counts())
+
