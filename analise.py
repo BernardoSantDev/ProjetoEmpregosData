@@ -48,4 +48,24 @@ df["chave"] = (
 df = df.drop_duplicates(subset="chave")
 print("Vagas de TI distintas:", len(df))
 
+TECNOLOGIAS = {
+    "Python": r"\bpython\b",
+    "SQL": r"\bsql\b",
+    "Excel": r"\bexcel\b",
+    "Power BI": r"\bpower\s?bi\b",
+    "Git": r"\bgit(?:hub)?\b",
+    "Inglês": r"\bingl[eê]s\b",
+    "Cloud (Azure/AWS)": r"\b(?:azure|aws|cloud)\b",
+    "Java": r"\bjava\b(?!\s?script)",
+    "JavaScript": r"\bjavascript\b",
+    "React": r"\breact\b",
+    "Machine Learning": r"(?:machine learning|aprendizado de m[aá]quina)",
+    "Linux": r"\blinux\b",
+    "Microsoft 365": r"(?:microsoft 365|m365|office 365)",
+    "Active Directory": r"\bactive directory\b",
+    "VBA": r"\bvba\b",
+}
+
+
+
 
