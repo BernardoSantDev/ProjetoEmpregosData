@@ -84,3 +84,4 @@ print(df["city"].fillna("Remoto / sem local").value_counts().head(10))
 print("\nModalidade:")
 print(df["workplaceType"].value_counts())
 
+df.to_csv("vagas_limpas.csv", index=False, encoding="utf-8-sig")
