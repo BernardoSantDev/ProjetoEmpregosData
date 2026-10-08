@@ -66,6 +66,7 @@ TECNOLOGIAS = {
     "VBA": r"\bvba\b",
 }
 
-
+for nome, padrao in TECNOLOGIAS.items():
+    df[nome] = df["descricao_limpa"].str.contains(padrao, flags=re.I, regex=True)
 
 
