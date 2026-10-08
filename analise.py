@@ -40,7 +40,12 @@ eh_ti = titulo.str.contains(INCLUIR, regex=True) & ~titulo.str.contains(EXCLUIR,
 df = df[eh_ti].copy()
 print("Vagas de TI (antes de remover repetidas):", len(df))
 
-
-
+df["chave"] = (
+    df["careerPageName"].fillna("")
+    + "|" + df["name"].str.lower().str[:30]
+    + "|" + df["descricao_limpa"].str[:250]
+)
+df = df.drop_duplicates(subset="chave")
+print("Vagas de TI distintas:", len(df))
 
 
