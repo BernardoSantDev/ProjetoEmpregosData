@@ -103,7 +103,19 @@ def preparar_infojobs():
     ij.loc[suspeito, ["salario_min", "salario_max"]] = pd.NA
 
 
-    return ij
+    return pd.DataFrame({
+    "fonte": "InfoJobs",
+    "id": "ij_" + ij["id"].astype(str),
+    "titulo": ij["name"],
+    "empresa": ij["careerPageName"],
+    "cidade": ij["cidade"],
+    "estado": ij["estado"],
+    "modalidade": ij["workplaceType"],
+    "descricao": ij["descricao_limpa"],
+    "salario_min": ij["salario_min"],
+    "salario_max": ij["salario_max"],
+    "url": ij["url"],
+    })
 
 if __name__ == "__main__":
     gupy = preparar_gupy()
