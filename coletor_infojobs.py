@@ -14,9 +14,19 @@ ASSUNTOS = ["ti", "dados", "desenvolvimento de sistemas", "suporte técnico ti",
             "python", "sql", "banco de dados", "infraestrutura ti"]
 TERMOS = [f"{forma} {assunto}" for forma in FORMAS for assunto in ASSUNTOS]
 
+def coletar_termo(termo):
+    return []  # ainda vou escrever
 
+if __name__ == "__main__":
+    todas = []
+    for termo in TERMOS:
+        vagas_termo = coletar_termo(termo)
+        for v in vagas_termo:
+            v["termo_busca"] = termo
+        todas.extend(vagas_termo)
+        time.sleep(1)
 
-
+    print("Total coletado:", len(todas))
 
 
 
