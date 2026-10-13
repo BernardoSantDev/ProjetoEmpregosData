@@ -1,7 +1,17 @@
 import pandas as pd
 
+from bs4 import BeautifulSoup
+
+def limpar_texto(texto):
+    if not isinstance(texto, str):
+        return ""
+    puro = BeautifulSoup(texto, "html.parser").get_text(" ")
+    return " ".join(puro.split())
+
 def preparar_gupy():
-    return pd.DataFrame()
+    gupy = pd.read_csv("vagas_brutas.csv")
+    gupy["descricao_limpa"] = gupy["description"].apply(limpar_texto)
+    return gupy
 
 def preparar_infojobs():
     return pd.DataFrame()
