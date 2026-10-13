@@ -64,7 +64,17 @@ def preparar_gupy():
     })
 
 def preparar_infojobs():
-    return pd.DataFrame()
+    ij = pd.read_csv("vagas_infojobs.csv")
+    ij = ij[ij["name"].apply(lambda t: eh_vaga_de_ti(t, exigir_estagio=True))].copy()
+    ij["descricao_limpa"] = ij["description"].apply(limpar_texto)
+
+    ij["chave"] = (
+        ij["careerPageName"].fillna("")
+        + "|" + ij["name"].str.lower().str[:30]
+        + "|" + ij["descricao_limpa"].str[:250]
+    )
+    ij = ij.drop_duplicates(subset="chave")
+    return ij
 
 if __name__ == "__main__":
     gupy = preparar_gupy()
