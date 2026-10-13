@@ -39,7 +39,6 @@ def extrair_vagas(html):
     return resultados
 
 
-
 def coletar_termo(termo):
     alvo = montar_url_alvo(termo, 1)
     resposta = requests.get(BASE, params={"url": alvo}, headers=HEADERS, timeout=15)
@@ -57,7 +56,13 @@ if __name__ == "__main__":
         todas.extend(vagas_termo)
         time.sleep(1)
 
-    print("Total coletado:", len(todas))
+    df = pd.DataFrame(todas)
+    print("\nAntes de remover duplicatas:", len(df))
+    df = df.drop_duplicates(subset="id")
+    print("Depois:", len(df))
+
+    df.to_csv("vagas_infojobs.csv", index=False, encoding="utf-8-sig")
+    print("Salvo em vagas_infojobs.csv")
 
 
 
