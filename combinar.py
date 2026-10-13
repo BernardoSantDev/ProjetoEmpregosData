@@ -63,6 +63,14 @@ def preparar_gupy():
     "url": gupy["jobUrl"],
     })
 
+def separar_local(loc):
+    if not isinstance(loc, str) or loc.strip() in ("", "Todo Brasil", "Localização não informada"):
+        return pd.Series([None, None])
+    partes = loc.rsplit(" - ", 1)
+    if len(partes) == 2:
+        return pd.Series([partes[0].strip(), partes[1].strip()])
+    return pd.Series([loc.strip(), None])
+
 def preparar_infojobs():
     ij = pd.read_csv("vagas_infojobs.csv")
     ij = ij[ij["name"].apply(lambda t: eh_vaga_de_ti(t, exigir_estagio=True))].copy()
