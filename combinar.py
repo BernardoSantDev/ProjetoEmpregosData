@@ -29,6 +29,11 @@ EXCLUIR = (
     r"|doc[eê]ncia|horista|especialista de ensino|cftv|seguran[cç]a eletr[oô]nica|jovem aprendiz)"
 )
 
+MODALIDADE = {
+    "on-site": "Presencial", "hybrid": "Híbrido", "remote": "Remoto",
+    "Presencial": "Presencial", "Híbrido": "Híbrido", "Home office": "Remoto",
+}
+
 def limpar_texto(texto):
     if not isinstance(texto, str):
         return ""
@@ -122,6 +127,8 @@ if __name__ == "__main__":
     infojobs = preparar_infojobs()
     todas = pd.concat([gupy, infojobs], ignore_index=True)
     print("TOTAL:", len(todas))
+    todas["modalidade"] = todas["modalidade"].map(MODALIDADE).fillna(todas["modalidade"])
+    
 
 
 
