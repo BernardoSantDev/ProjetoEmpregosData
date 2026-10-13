@@ -74,6 +74,11 @@ def preparar_infojobs():
         + "|" + ij["descricao_limpa"].str[:250]
     )
     ij = ij.drop_duplicates(subset="chave")
+
+    ij[["cidade", "estado_sigla"]] = ij["location"].apply(separar_local)
+    ij["estado"] = ij["estado_sigla"].map(UF_NOME)
+
+
     return ij
 
 if __name__ == "__main__":
