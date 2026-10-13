@@ -33,6 +33,7 @@ def extrair_vagas(html):
 
         titulo_tag = card.select_one("h2.js_vacancyTitle")
         titulo = limpar_texto(titulo_tag.get_text()) if titulo_tag else None
+
         empresa_tag = card.select_one("div.text-body a")
         empresa = limpar_texto(empresa_tag.get_text(" ")) if empresa_tag else None
 
@@ -48,6 +49,16 @@ def extrair_vagas(html):
                 oculto.decompose()
             localizacao = limpar_texto(local_div.get_text())
 
+        def texto_do_icone(classe_icone):
+            svg = card.select_one(f"svg.{classe_icone}")
+            return limpar_texto(svg.parent.get_text()) if svg else None
+
+        salario = texto_do_icone("icon-money")
+        escolaridade = texto_do_icone("icon-graduate-hat")
+        experiencia = texto_do_icone("icon-suitcase")
+        modalidade = (texto_do_icone("icon-buildings")
+                      or texto_do_icone("icon-house-and-building")
+                      or texto_do_icone("icon-user-home"))
 
         if vaga_id:
             resultados.append({"id": vaga_id, "name": titulo})
