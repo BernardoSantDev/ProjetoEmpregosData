@@ -73,13 +73,25 @@ def extrair_vagas(html):
     return resultados
 
 
-def coletar_termo(termo):
-    alvo = montar_url_alvo(termo, 1)
-    resposta = requests.get(BASE, params={"url": alvo}, headers=HEADERS, timeout=15)
-    resposta.raise_for_status()
-    corpo = resposta.json()
-    return extrair_vagas(corpo["listFragmentHTML"])
-    return []
+def coletar_termo(termo, max_paginas=25):
+    vagas = []
+    for page in range(1, max_paginas + 1):
+        alvo = montar_url_alvo(termo, page)
+        resposta = requests.get(BASE, params={"url": alvo}, headers=HEADERS, timeout=15)
+        resposta.raise_for_status()
+        corpo = resposta.json()
+
+        pagina = extrair_vagas(corpo["listFragmentHTML"])
+        if not pagina:
+            break
+        vagas.extend(pagina)
+
+        if corpo.get("eof"):
+            break
+        time.sleep(1)
+
+    print(f"{termo}: {len(vagas)} vagas")
+    return vagas
 
 if __name__ == "__main__":
     todas = []
