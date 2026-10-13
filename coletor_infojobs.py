@@ -33,6 +33,21 @@ def extrair_vagas(html):
 
         titulo_tag = card.select_one("h2.js_vacancyTitle")
         titulo = limpar_texto(titulo_tag.get_text()) if titulo_tag else None
+        empresa_tag = card.select_one("div.text-body a")
+        empresa = limpar_texto(empresa_tag.get_text(" ")) if empresa_tag else None
+
+        local_div = None
+        for d in card.find_all("div", class_="mb-8"):
+            if "d-inline-flex" not in d.get("class", []):
+                local_div = d
+                break
+        localizacao = None
+        if local_div:
+            oculto = local_div.select_one("span[hidden]")
+            if oculto:
+                oculto.decompose()
+            localizacao = limpar_texto(local_div.get_text())
+
 
         if vaga_id:
             resultados.append({"id": vaga_id, "name": titulo})
