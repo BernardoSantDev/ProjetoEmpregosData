@@ -99,6 +99,8 @@ def preparar_infojobs():
 
     ij[["salario_min", "salario_max"]] = ij["salario_texto"].apply(parse_salario)
 
+    suspeito = (ij["salario_max"] > ij["salario_min"] * 3) & ij["salario_min"].notna()
+    ij.loc[suspeito, ["salario_min", "salario_max"]] = pd.NA
 
 
     return ij
