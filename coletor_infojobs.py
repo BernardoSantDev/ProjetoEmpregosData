@@ -60,6 +60,14 @@ def extrair_vagas(html):
                       or texto_do_icone("icon-house-and-building")
                       or texto_do_icone("icon-user-home"))
 
+        href = interior.get("data-href") if interior else None
+
+        descricao = None
+        for d in card.find_all("div"):
+            if d.get("class") == ["text-medium"]:
+                descricao = limpar_texto(d.get_text())
+                break
+
         if vaga_id:
             resultados.append({"id": vaga_id, "name": titulo})
     return resultados
