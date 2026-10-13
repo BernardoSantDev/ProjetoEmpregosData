@@ -158,7 +158,9 @@ if __name__ == "__main__":
     todas["modalidade"] = todas["modalidade"].map(MODALIDADE).fillna(todas["modalidade"])
     for nome, padrao in TECNOLOGIAS.items():
         todas[nome] = todas["descricao"].str.contains(padrao, flags=re.I, regex=True)
-
+    todas.to_csv("vagas_combinadas.csv", index=False, encoding="utf-8-sig")
+    print("Com salário:", todas["salario_min"].notna().sum())
+    print(todas["fonte"].value_counts())
 
 
 
