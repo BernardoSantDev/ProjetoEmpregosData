@@ -71,6 +71,17 @@ def separar_local(loc):
         return pd.Series([partes[0].strip(), partes[1].strip()])
     return pd.Series([loc.strip(), None])
 
+def parse_salario(texto):
+    if not isinstance(texto, str) or "combinar" in texto.lower():
+        return pd.Series([pd.NA, pd.NA])
+    numeros = re.findall(r"R\$\s?([\d\.]+,\d{2}|\d+,\d{2})", texto)
+    valores = [float(n.replace(".", "").replace(",", ".")) for n in numeros]
+    if not valores:
+        return pd.Series([pd.NA, pd.NA])
+    if len(valores) == 1:
+        return pd.Series([valores[0], valores[0]])
+    return pd.Series([min(valores), max(valores)])
+
 def preparar_infojobs():
     ij = pd.read_csv("vagas_infojobs.csv")
     ij = ij[ij["name"].apply(lambda t: eh_vaga_de_ti(t, exigir_estagio=True))].copy()
@@ -85,6 +96,9 @@ def preparar_infojobs():
 
     ij[["cidade", "estado_sigla"]] = ij["location"].apply(separar_local)
     ij["estado"] = ij["estado_sigla"].map(UF_NOME)
+
+    ij[["salario_min", "salario_max"]] = ij["salario_texto"].apply(parse_salario)
+
 
 
     return ij
