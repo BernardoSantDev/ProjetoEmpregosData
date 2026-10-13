@@ -41,6 +41,14 @@ def preparar_gupy():
 
     gupy = gupy[gupy["name"].apply(eh_vaga_de_ti)].copy()
 
+    gupy["chave"] = (
+    gupy["careerPageName"].fillna("")
+    + "|" + gupy["name"].str.lower().str[:30]
+    + "|" + gupy["descricao_limpa"].str[:250]
+    )
+    gupy = gupy.drop_duplicates(subset="chave")
+    
+
     return gupy
 
 def preparar_infojobs():
