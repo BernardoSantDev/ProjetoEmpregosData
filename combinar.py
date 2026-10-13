@@ -1,6 +1,13 @@
 import pandas as pd
 from bs4 import BeautifulSoup
+import re
 
+def eh_vaga_de_ti(titulo, exigir_estagio=False):
+    t = str(titulo).lower()
+    ok = bool(re.search(INCLUIR, t)) and not re.search(EXCLUIR, t)
+    if exigir_estagio:
+        ok = ok and bool(re.search(r"est[aá]gi", t))
+    return ok
 
 INCLUIR = (
     r"(?:\bti\b|\bt\.i\b|tecnologia da informa|\bdados\b|\bsistemas?\b|\bsoftware\b|\bsw\b"
