@@ -14,6 +14,28 @@ ASSUNTOS = ["ti", "dados", "desenvolvimento de sistemas", "suporte técnico ti",
             "python", "sql", "banco de dados", "infraestrutura ti"]
 TERMOS = [f"{forma} {assunto}" for forma in FORMAS for assunto in ASSUNTOS]
 
+INCLUIR = (
+    r"(?:\bti\b|\bt\.i\b|tecnologia da informa|\bdados\b|\bsistemas?\b|\bsoftware\b|\bsw\b"
+    r"|programa[cç][aã]o|desenvolvimento (?:de )?(?:sw|software|sistemas|android|fullstack|integra|ia)"
+    r"|front.?end|full.?stack|low.?code|help ?desk"
+    r"|suporte (?:t[eé]cnico|de ti|ti|de sistemas|e manuten)"
+    r"|infraestrutura de ti|banco de dados|ci[eê]ncia de dados|engenharia de dados"
+    r"|intelig[eê]ncia artificial|\bia\b|est[aá]gio em tecnologia|estagi[aá]rio em tecnologia"
+    r"|governan[cç]a de ti|qualidade de software|testes de software|seguran[cç]a da informa)"
+)
+EXCLUIR = (
+    r"(?:neg[oó]cios|humano|organizacional|fornecedores|treinamento|pesquisa e desenvolvimento"
+    r"|arquitetura|engenharia civil|ferramentais|suporte ao cliente|suporte comercial"
+    r"|suporte jur|suporte acad|suporte de benef|suporte cl[ií]nico|log[ií]stica|compras"
+    r"|concreto|contabilidade|tesouraria|\| rh|controle de dados|desenvolvimento de produto"
+    r"|desenvolvimento t[eé]cnico|sistema de gest[aã]o|sistemas de opera|sistema de monitora"
+    r"|matem[aá]tica|telecom|eletroeletr|instrumenta|industrial|opera[cç][oõ]es"
+    r"|departamento pessoal|coordenador|acad[eê]mico|enfermagem|redes sociais|backoffice)"
+)
+
+def eh_vaga_de_ti(titulo):
+    t = titulo.lower()
+    return bool(re.search(INCLUIR, t)) and not re.search(EXCLUIR, t)
 
 def montar_url_alvo(termo, page):
     slug = quote(termo.lower(), safe="").replace("%20", "+")
@@ -84,7 +106,8 @@ def coletar_termo(termo, max_paginas=25):
         pagina = extrair_vagas(corpo["listFragmentHTML"])
         if not pagina:
             break
-        vagas.extend(pagina)
+        pagina_ti = [v for v in pagina if v["name"] and eh_vaga_de_ti(v["name"])]
+        vagas.extend(pagina_ti)
 
         if corpo.get("eof"):
             break
