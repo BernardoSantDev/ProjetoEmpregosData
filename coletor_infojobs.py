@@ -19,12 +19,33 @@ def montar_url_alvo(termo, page):
     slug = quote(termo.lower(), safe="").replace("%20", "+")
     return f"https://www.infojobs.com.br/vagas-de-emprego-{slug}.aspx?page={page}"
 
+def limpar_texto(texto):
+    if not texto:
+        return ""
+    return " ".join(texto.split())
+
+def extrair_vagas(html):
+    soup = BeautifulSoup(html, "html.parser")
+    resultados = []
+    for card in soup.select("div.grid-row.js_rowCard"):
+        interior = card.select_one("div.js_cardLink")
+        vaga_id = interior.get("data-id") if interior else None
+
+        titulo_tag = card.select_one("h2.js_vacancyTitle")
+        titulo = limpar_texto(titulo_tag.get_text()) if titulo_tag else None
+
+        if vaga_id:
+            resultados.append({"id": vaga_id, "name": titulo})
+    return resultados
+
+
+
 def coletar_termo(termo):
     alvo = montar_url_alvo(termo, 1)
     resposta = requests.get(BASE, params={"url": alvo}, headers=HEADERS, timeout=15)
     resposta.raise_for_status()
     corpo = resposta.json()
-    print(termo, "->", len(corpo["listFragmentHTML"]), "caracteres de HTML")
+    return extrair_vagas(corpo["listFragmentHTML"])
     return []
 
 if __name__ == "__main__":
