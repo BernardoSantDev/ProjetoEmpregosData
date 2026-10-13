@@ -14,6 +14,11 @@ ASSUNTOS = ["ti", "dados", "desenvolvimento de sistemas", "suporte técnico ti",
             "python", "sql", "banco de dados", "infraestrutura ti"]
 TERMOS = [f"{forma} {assunto}" for forma in FORMAS for assunto in ASSUNTOS]
 
+
+def montar_url_alvo(termo, page):
+    slug = quote(termo.lower(), safe="").replace("%20", "+")
+    return f"https://www.infojobs.com.br/vagas-de-emprego-{slug}.aspx?page={page}"
+
 def coletar_termo(termo):
     alvo = montar_url_alvo(termo, 1)
     resposta = requests.get(BASE, params={"url": alvo}, headers=HEADERS, timeout=15)
