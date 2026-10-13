@@ -15,7 +15,12 @@ ASSUNTOS = ["ti", "dados", "desenvolvimento de sistemas", "suporte técnico ti",
 TERMOS = [f"{forma} {assunto}" for forma in FORMAS for assunto in ASSUNTOS]
 
 def coletar_termo(termo):
-    return []  # ainda vou escrever
+    alvo = montar_url_alvo(termo, 1)
+    resposta = requests.get(BASE, params={"url": alvo}, headers=HEADERS, timeout=15)
+    resposta.raise_for_status()
+    corpo = resposta.json()
+    print(termo, "->", len(corpo["listFragmentHTML"]), "caracteres de HTML")
+    return []
 
 if __name__ == "__main__":
     todas = []
