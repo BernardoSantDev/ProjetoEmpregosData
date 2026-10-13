@@ -1,13 +1,6 @@
+import re
 import pandas as pd
 from bs4 import BeautifulSoup
-import re
-
-def eh_vaga_de_ti(titulo, exigir_estagio=False):
-    t = str(titulo).lower()
-    ok = bool(re.search(INCLUIR, t)) and not re.search(EXCLUIR, t)
-    if exigir_estagio:
-        ok = ok and bool(re.search(r"est[aá]gi", t))
-    return ok
 
 INCLUIR = (
     r"(?:\bti\b|\bt\.i\b|tecnologia da informa|\bdados\b|\bsistemas?\b|\bsoftware\b|\bsw\b"
@@ -29,11 +22,6 @@ EXCLUIR = (
     r"|doc[eê]ncia|horista|especialista de ensino|cftv|seguran[cç]a eletr[oô]nica|jovem aprendiz)"
 )
 
-MODALIDADE = {
-    "on-site": "Presencial", "hybrid": "Híbrido", "remote": "Remoto",
-    "Presencial": "Presencial", "Híbrido": "Híbrido", "Home office": "Remoto",
-}
-
 UF_NOME = {
     "AC": "Acre", "AL": "Alagoas", "AP": "Amapá", "AM": "Amazonas", "BA": "Bahia",
     "CE": "Ceará", "DF": "Distrito Federal", "ES": "Espírito Santo", "GO": "Goiás",
@@ -42,6 +30,11 @@ UF_NOME = {
     "RJ": "Rio de Janeiro", "RN": "Rio Grande do Norte", "RS": "Rio Grande do Sul",
     "RO": "Rondônia", "RR": "Roraima", "SC": "Santa Catarina", "SP": "São Paulo",
     "SE": "Sergipe", "TO": "Tocantins",
+}
+
+MODALIDADE = {
+    "on-site": "Presencial", "hybrid": "Híbrido", "remote": "Remoto",
+    "Presencial": "Presencial", "Híbrido": "Híbrido", "Home office": "Remoto",
 }
 
 TECNOLOGIAS = {
@@ -62,11 +55,21 @@ TECNOLOGIAS = {
     "VBA": r"\bvba\b",
 }
 
+
 def limpar_texto(texto):
     if not isinstance(texto, str):
         return ""
     puro = BeautifulSoup(texto, "html.parser").get_text(" ")
     return " ".join(puro.split())
+
+
+def eh_vaga_de_ti(titulo, exigir_estagio=False):
+    t = str(titulo).lower()
+    ok = bool(re.search(INCLUIR, t)) and not re.search(EXCLUIR, t)
+    if exigir_estagio:
+        ok = ok and bool(re.search(r"est[aá]gi", t))
+    return ok
+
 
 def preparar_gupy():
     gupy = pd.read_csv("vagas_brutas.csv")
@@ -75,26 +78,26 @@ def preparar_gupy():
     gupy = gupy[gupy["name"].apply(eh_vaga_de_ti)].copy()
 
     gupy["chave"] = (
-    gupy["careerPageName"].fillna("")
-    + "|" + gupy["name"].str.lower().str[:30]
-    + "|" + gupy["descricao_limpa"].str[:250]
+        gupy["careerPageName"].fillna("")
+        + "|" + gupy["name"].str.lower().str[:30]
+        + "|" + gupy["descricao_limpa"].str[:250]
     )
     gupy = gupy.drop_duplicates(subset="chave")
 
-
     return pd.DataFrame({
-    "fonte": "Gupy",
-    "id": "gupy_" + gupy["id"].astype(str),
-    "titulo": gupy["name"],
-    "empresa": gupy["careerPageName"],
-    "cidade": gupy["city"],
-    "estado": gupy["state"],
-    "modalidade": gupy["workplaceType"],
-    "descricao": gupy["descricao_limpa"],
-    "salario_min": pd.NA,
-    "salario_max": pd.NA,
-    "url": gupy["jobUrl"],
+        "fonte": "Gupy",
+        "id": "gupy_" + gupy["id"].astype(str),
+        "titulo": gupy["name"],
+        "empresa": gupy["careerPageName"],
+        "cidade": gupy["city"],
+        "estado": gupy["state"],
+        "modalidade": gupy["workplaceType"],
+        "descricao": gupy["descricao_limpa"],
+        "salario_min": pd.NA,
+        "salario_max": pd.NA,
+        "url": gupy["jobUrl"],
     })
+
 
 def separar_local(loc):
     if not isinstance(loc, str) or loc.strip() in ("", "Todo Brasil", "Localização não informada"):
@@ -103,6 +106,7 @@ def separar_local(loc):
     if len(partes) == 2:
         return pd.Series([partes[0].strip(), partes[1].strip()])
     return pd.Series([loc.strip(), None])
+
 
 def parse_salario(texto):
     if not isinstance(texto, str) or "combinar" in texto.lower():
@@ -115,8 +119,10 @@ def parse_salario(texto):
         return pd.Series([valores[0], valores[0]])
     return pd.Series([min(valores), max(valores)])
 
+
 def preparar_infojobs():
     ij = pd.read_csv("vagas_infojobs.csv")
+
     ij = ij[ij["name"].apply(lambda t: eh_vaga_de_ti(t, exigir_estagio=True))].copy()
     ij["descricao_limpa"] = ij["description"].apply(limpar_texto)
 
@@ -131,39 +137,36 @@ def preparar_infojobs():
     ij["estado"] = ij["estado_sigla"].map(UF_NOME)
 
     ij[["salario_min", "salario_max"]] = ij["salario_texto"].apply(parse_salario)
-
     suspeito = (ij["salario_max"] > ij["salario_min"] * 3) & ij["salario_min"].notna()
     ij.loc[suspeito, ["salario_min", "salario_max"]] = pd.NA
 
-
     return pd.DataFrame({
-    "fonte": "InfoJobs",
-    "id": "ij_" + ij["id"].astype(str),
-    "titulo": ij["name"],
-    "empresa": ij["careerPageName"],
-    "cidade": ij["cidade"],
-    "estado": ij["estado"],
-    "modalidade": ij["workplaceType"],
-    "descricao": ij["descricao_limpa"],
-    "salario_min": ij["salario_min"],
-    "salario_max": ij["salario_max"],
-    "url": ij["url"],
+        "fonte": "InfoJobs",
+        "id": "ij_" + ij["id"].astype(str),
+        "titulo": ij["name"],
+        "empresa": ij["careerPageName"],
+        "cidade": ij["cidade"],
+        "estado": ij["estado"],
+        "modalidade": ij["workplaceType"],
+        "descricao": ij["descricao_limpa"],
+        "salario_min": ij["salario_min"],
+        "salario_max": ij["salario_max"],
+        "url": ij["url"],
     })
+
 
 if __name__ == "__main__":
     gupy = preparar_gupy()
     infojobs = preparar_infojobs()
     todas = pd.concat([gupy, infojobs], ignore_index=True)
-    print("TOTAL:", len(todas))
+
     todas["modalidade"] = todas["modalidade"].map(MODALIDADE).fillna(todas["modalidade"])
+
     for nome, padrao in TECNOLOGIAS.items():
         todas[nome] = todas["descricao"].str.contains(padrao, flags=re.I, regex=True)
+
     todas.to_csv("vagas_combinadas.csv", index=False, encoding="utf-8-sig")
-    print("Com salário:", todas["salario_min"].notna().sum())
+
+    print("TOTAL:", len(todas))
     print(todas["fonte"].value_counts())
-
-
-
-
-
-
+    print("Com salário:", todas["salario_min"].notna().sum())
