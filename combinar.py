@@ -47,9 +47,21 @@ def preparar_gupy():
     + "|" + gupy["descricao_limpa"].str[:250]
     )
     gupy = gupy.drop_duplicates(subset="chave")
-    
 
-    return gupy
+
+    return pd.DataFrame({
+    "fonte": "Gupy",
+    "id": "gupy_" + gupy["id"].astype(str),
+    "titulo": gupy["name"],
+    "empresa": gupy["careerPageName"],
+    "cidade": gupy["city"],
+    "estado": gupy["state"],
+    "modalidade": gupy["workplaceType"],
+    "descricao": gupy["descricao_limpa"],
+    "salario_min": pd.NA,
+    "salario_max": pd.NA,
+    "url": gupy["jobUrl"],
+    })
 
 def preparar_infojobs():
     return pd.DataFrame()
