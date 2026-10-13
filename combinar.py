@@ -156,7 +156,8 @@ if __name__ == "__main__":
     todas = pd.concat([gupy, infojobs], ignore_index=True)
     print("TOTAL:", len(todas))
     todas["modalidade"] = todas["modalidade"].map(MODALIDADE).fillna(todas["modalidade"])
-    
+    for nome, padrao in TECNOLOGIAS.items():
+        todas[nome] = todas["descricao"].str.contains(padrao, flags=re.I, regex=True)
 
 
 
