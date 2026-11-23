@@ -1,68 +1,139 @@
+
 import time
+from pathlib import Path
+
 import requests
 import pandas as pd
 
-URL = "https://portal.gupy.io/api/job-search/jobs"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (projeto academico - analise de vagas)"
-}
-FORMAS = ["Estágio", "Estagiário"]
-AREAS = ["TI", "Tecnologia", "Dados", "Sistemas", "Desenvolvimento",
-         "Software", "Suporte", "Infraestrutura", "BI", "Automação"]
-TERMOS = [f"{forma} {area}" for forma in FORMAS for area in AREAS]
 
-def coletar_termo(termo, limit=12, max_vagas=600):
+URL = "https://portal.gupy.io/api/job-search/jobs"
+
+HEADERS = {
+    "User-Agent": "ObservatorioEstagios/1.0 (projeto academico)"
+}
+
+
+def coletar_termo(termo, limite=12, max_paginas=2):
     vagas = []
-    offset = 0
-    while True:
-        resposta = requests.get(URL, params={"jobName": termo, "limit": limit, "offset": offset}, headers=HEADERS, timeout=15)
+
+    for pagina in range(max_paginas):
+        offset = pagina * limite
+
+        parametros = {
+            "jobName": termo,
+            "limit": limite,
+            "offset": offset
+        }
+
+        resposta = requests.get(
+            URL,
+            params=parametros,
+            headers=HEADERS,
+            timeout=20
+        )
+
         resposta.raise_for_status()
-        corpo = resposta.json()
-        pagina = corpo["data"]
-        vagas.extend(pagina)
-        offset += limit
-        if len(pagina) < limit or len(vagas) >= max_vagas:
+        dados = resposta.json()
+
+        resultados = dados.get("data")
+
+        if not isinstance(resultados, list):
+            raise ValueError("Formato inesperado na resposta da Gupy.")
+
+        if not resultados:
             break
+
+        vagas.extend(resultados)
+
+        if len(resultados) < limite:
+            break
+
         time.sleep(1)
-    print(f"{termo}: {len(vagas)} vagas coletadas")
+
     return vagas
 
-if __name__ == "__main__":
-    todas = []
-    for termo in TERMOS:
-        vagas_termo = coletar_termo(termo)
-        for v in vagas_termo:
-            v["termo_busca"] = termo
-        todas.extend(vagas_termo)
+
+def coletar_gupy(termos):
+    todas_vagas = []
+    ids_encontrados = set()
+
+    for termo in termos:
+        print(f"\nPesquisando: {termo}")
+
+        vagas = coletar_termo(termo)
+
+        for vaga in vagas:
+            id_vaga = vaga.get("id")
+            tipo = vaga.get("type")
+
+            if tipo != "vacancy_type_internship":
+                continue
+
+            if id_vaga is None:
+                continue
+
+            if id_vaga in ids_encontrados:
+                continue
+
+            ids_encontrados.add(id_vaga)
+
+            vaga["termo_busca"] = termo
+            todas_vagas.append(vaga)
+
+        print(f"Total acumulado: {len(todas_vagas)}")
+
         time.sleep(1)
 
+    colunas = [
+        "id", "name", "careerPageName",
+        "description", "type", "city", "state",
+        "workplaceType", "publishedDate",
+        "applicationDeadline", "jobUrl", "termo_busca"
+    ]
 
-    df = pd.DataFrame(todas)
-    print("\nAntes de remover duplicatas:", len(df))
-    df = df.drop_duplicates(subset="id")
-    print("Depois de remover duplicatas:", len(df))
+    df = pd.DataFrame(todas_vagas).reindex(columns=colunas)
 
-    df = df[df["type"] == "vacancy_type_internship"]
-    print("Só estágios:", len(df))
 
-    df.to_csv("vagas_brutas.csv", index=False, encoding="utf-8-sig")
-    print("Salvo em vagas_brutas.csv")
+    agora = pd.Timestamp.now(tz="UTC")
 
-    colunas_uteis = {
-        "name": "titulo",
-        "careerPageName": "empresa",
-        "city": "cidade",
-        "state": "estado",
-        "workplaceType": "modalidade",
-        "publishedDate": "data_publicacao",
-        "applicationDeadline": "prazo_inscricao",
-        "jobUrl": "link",
-        "termo_busca": "termo_busca"
-    }
+    data_limite = agora - pd.Timedelta(days=180)
 
-    df_enxuto = df[list(colunas_uteis.keys())].rename(columns=colunas_uteis)
-    df_enxuto["data_publicacao"] = pd.to_datetime(df_enxuto["data_publicacao"]).dt.date
-    df_enxuto["prazo_inscricao"] = pd.to_datetime(df_enxuto["prazo_inscricao"]).dt.date
+    publicacao = pd.to_datetime(
+        df["publishedDate"],
+        errors="coerce",
+        utc=True
+    )
 
-    df_enxuto.to_csv("vagas_brutas_legivel.csv", index=False, encoding="utf-8-sig")
-    print("Salvo em vagas_brutas_legivel.csv")
+    prazo = pd.to_datetime(
+        df["applicationDeadline"],
+        errors="coerce",
+        utc=True
+    )
+
+    publicacao_recente = (
+        publicacao.notna() & (publicacao >= data_limite)
+    )
+
+    inscricao_no_prazo = (
+        prazo.isna() | (prazo.dt.date >= agora.date())
+    )
+
+    antes = len(df)
+
+    df = df[
+        publicacao_recente & inscricao_no_prazo
+    ].copy()
+
+    print(f"Vagas removidas pelo filtro de datas: {antes - len(df)}")
+
+    pasta = Path("dados")
+    pasta.mkdir(exist_ok=True)
+
+    caminho = pasta / "vagas_gupy.csv"
+
+    df.to_csv(caminho, index=False, encoding="utf-8-sig")
+
+    print(f"\nColeta finalizada: {len(df)} vagas únicas.")
+    print(f"Arquivo salvo em: {caminho}")
+
+    return df

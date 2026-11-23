@@ -1,6 +1,53 @@
-.venv
-vagas_brutas.csv
-vagas_limpas.csv
-vagas_brutas_legivel.csv
-vagas_infojobs.csv
-vagas_combinadas.csv
+
+# ==============================
+# AMBIENTE VIRTUAL PYTHON
+# ==============================
+.venv/
+venv/
+env/
+
+# ==============================
+# CACHE DO PYTHON
+# ==============================
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# ==============================
+# CREDENCIAIS E CHAVES DE API
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# DADOS GERADOS PELOS COLETORES
+# ==============================
+dados/
+data/
+
+# ==============================
+# BANCO DE DADOS LOCAL
+# ==============================
+*.db
+*.sqlite
+*.sqlite3
+
+# ==============================
+# ARQUIVOS TEMPORÁRIOS
+# ==============================
+*.log
+*.tmp
+
+# ==============================
+# CONFIGURAÇÕES DO EDITOR
+# ==============================
+.vscode/
+.idea/
+
+# ==============================
+# ARQUIVOS DO SISTEMA
+# ==============================
+.DS_Store
+Thumbs.db
