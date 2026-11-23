@@ -1,18 +1,104 @@
+
 import re
 import requests
 import pandas as pd
+import unicodedata
 
 from bs4 import BeautifulSoup
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
+
 BASE = "https://www.superestagios.com.br"
-URL_LISTA = "https://www.superestagios.com.br/vagas/tecnologia-da-informacao"
-LINK = "/vaga/329068"
+
+URL_CATALOGO = BASE + "/vagas/"
 
 HEADERS = {
     "User-Agent": "ObservatorioEstagios/1.0 (projeto academico)"
 }
+
+
+def normalizar_texto(texto):
+    if not isinstance(texto, str):
+        return ""
+
+    texto = texto.lower().strip()
+
+    texto = unicodedata.normalize("NFKD", texto)
+
+    texto = "".join(
+        letra for letra in texto
+        if not unicodedata.combining(letra)
+    )
+
+    return " ".join(texto.split())
+
+
+
+def encontrar_url_curso(area):
+    print(f"\nProcurando a área: {area}")
+
+    resposta = requests.get(
+        URL_CATALOGO,
+        headers=HEADERS,
+        timeout=20
+    )
+
+    resposta.raise_for_status()
+
+    soup = BeautifulSoup(
+        resposta.text,
+        "html.parser"
+    )
+
+    apelidos = {
+        "ti": "tecnologia da informacao",
+        "t.i.": "tecnologia da informacao",
+        "adm": "administracao",
+        "ads": "analise e desenvolvimento de sistemas"
+    }
+
+    area_normalizada = normalizar_texto(area)
+
+    area_busca = apelidos.get(
+        area_normalizada,
+        area_normalizada
+    )
+
+    links = soup.select("a[href]")
+
+    for link in links:
+        nome = normalizar_texto(
+            link.get_text(" ", strip=True)
+        )
+
+        nome = re.sub(r"\s*\d+\s*$", "", nome)
+
+        url = urljoin(BASE, link["href"])
+
+        partes_url = urlparse(url)
+
+        caminho = partes_url.path
+
+        if partes_url.netloc != urlparse(BASE).netloc:
+            continue
+
+        if not re.fullmatch(
+            r"/vagas/[a-z0-9-]+/?",
+            caminho
+        ):
+            continue
+
+        if nome == area_busca:
+            print(f"Área encontrada: {area}")
+            print(f"URL: {url}")
+
+            return url
+
+    print(f"Área não encontrada no catálogo: {area}")
+
+    return None
+
 
 
 def extrair_campo(texto, inicio, fim):
@@ -21,7 +107,11 @@ def extrair_campo(texto, inicio, fim):
         rf"(.*?)\s*{re.escape(fim)}\s*:"
     )
 
-    resultado = re.search(padrao, texto, flags=re.I | re.S)
+    resultado = re.search(
+        padrao,
+        texto,
+        flags=re.I | re.S
+    )
 
     if resultado:
         return resultado.group(1).strip(" |")
@@ -47,9 +137,9 @@ def converter_bolsa(texto):
     return float(valor)
 
 
-def listar_vagas():
+def listar_vagas(url_lista):
     resposta = requests.get(
-        URL_LISTA,
+        url_lista,
         headers=HEADERS,
         timeout=20
     )
@@ -67,15 +157,19 @@ def listar_vagas():
 
     for titulo in titulos:
         nome = titulo.get_text(" ", strip=True)
+
         href = titulo.get("href", "")
 
         url = urljoin(BASE, href)
 
-        caminho = urlparse(url).path
+        partes_url = urlparse(url)
+
+        if partes_url.netloc != urlparse(BASE).netloc:
+            continue
 
         resultado = re.fullmatch(
             r"/vaga/(\d+)/?",
-            caminho
+            partes_url.path
         )
 
         if not resultado:
@@ -113,9 +207,19 @@ def listar_vagas():
 
     return df
 
-
 def coletar_detalhes(link):
     url = urljoin(BASE, link)
+
+    partes_url = urlparse(url)
+
+    if partes_url.netloc != urlparse(BASE).netloc:
+        raise ValueError("Link fora do domínio permitido.")
+
+    if not re.fullmatch(
+        r"/vaga/\d+/?",
+        partes_url.path
+    ):
+        raise ValueError("Link de vaga inválido.")
 
     resposta = requests.get(
         url,
@@ -125,18 +229,45 @@ def coletar_detalhes(link):
 
     resposta.raise_for_status()
 
-    soup = BeautifulSoup(resposta.text, "html.parser")
+    soup = BeautifulSoup(
+        resposta.text,
+        "html.parser"
+    )
 
     texto = soup.get_text(" ", strip=True)
 
     vaga = {
-        "id": extrair_campo(texto, "Número da vaga", "Empresa"),
-        "empresa": extrair_campo(texto, "Empresa", "Nível"),
-        "cursos": extrair_campo(texto, "Cursos", "Valor da bolsa"),
-        "bolsa": extrair_campo(texto, "Valor da bolsa", "Valor do auxilio transporte"),
-        "cidade": extrair_campo(texto, "Cidade", "Estado"),
-        "estado": extrair_campo(texto, "Estado", "Requisito"),
-        "atividades": extrair_campo(texto, "Atividades a serem desenvolvidas", "Benefícios"),
+        "id": extrair_campo(
+            texto, "Número da vaga", "Empresa"
+        ),
+
+        "empresa": extrair_campo(
+            texto, "Empresa", "Nível"
+        ),
+
+        "cursos": extrair_campo(
+            texto, "Cursos", "Valor da bolsa"
+        ),
+
+        "bolsa": extrair_campo(
+            texto, "Valor da bolsa",
+            "Valor do auxilio transporte"
+        ),
+
+        "cidade": extrair_campo(
+            texto, "Cidade", "Estado"
+        ),
+
+        "estado": extrair_campo(
+            texto, "Estado", "Requisito"
+        ),
+
+        "atividades": extrair_campo(
+            texto,
+            "Atividades a serem desenvolvidas",
+            "Benefícios"
+        ),
+
         "url": url
     }
 
@@ -149,14 +280,16 @@ def coletar_detalhes(link):
 
 
 def salvar_vaga(vaga):
+    if not vaga.get("id"):
+        print("Vaga sem ID. Registro não salvo.")
+        return None
+
     pasta = Path("dados")
     pasta.mkdir(exist_ok=True)
 
     arquivo = pasta / "vagas_superestagios.csv"
 
-    if not vaga.get("id"):
-        print("Vaga sem ID. Registro não salvo.")
-        return
+    vaga = vaga.copy()
 
     vaga["id"] = str(vaga["id"]).strip()
 
@@ -194,30 +327,61 @@ def salvar_vaga(vaga):
     )
 
     print(f"\nArquivo salvo em: {arquivo}")
-    print(f"Total de vagas únicas: {len(df)}")
+    print(f"Total de vagas únicas salvas: {len(df)}")
 
     return df
 
 
+def main():
 
+    area = input(
+        "\nQual área de estágio deseja pesquisar? "
+    ).strip()
 
-if __name__ == "__main__":
+    if not area:
+        print("Informe uma área válida.")
+        return
+
     try:
-        df_links = listar_vagas()
+        url_curso = encontrar_url_curso(area)
+
+        if not url_curso:
+            return
+
+        df_links = listar_vagas(url_curso)
+
+        if df_links.empty:
+            print("Nenhuma vaga encontrada.")
+            return
 
         print("\nPrimeiras vagas encontradas:")
 
-        print(df_links.head(10).to_string(index=False))
+        print(
+            df_links.head(10).to_string(index=False)
+        )
 
-        if not df_links.empty:
-            link = df_links.iloc[0]["url"]
+        primeira = df_links.iloc[0]
 
-            print("\nTestando a primeira vaga...")
+        print("\nTestando a primeira vaga...")
 
-            vaga = coletar_detalhes(link)
+        vaga = coletar_detalhes(primeira["url"])
 
-            salvar_vaga(vaga)
+        vaga["titulo"] = primeira["titulo"]
+        vaga["area_pesquisada"] = area
+
+        salvar_vaga(vaga)
+
+        print("\nPesquisa de teste finalizada!")
 
     except requests.RequestException as erro:
-        print(f"Erro de conexão: {erro}")
+        print(f"\nErro de conexão: {erro}")
 
+    except ValueError as erro:
+        print(f"\nErro nos dados: {erro}")
+
+    except (OSError, pd.errors.ParserError) as erro:
+        print(f"\nErro ao acessar o CSV: {erro}")
+
+
+if __name__ == "__main__":
+    main()
