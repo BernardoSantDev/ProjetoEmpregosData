@@ -26,6 +26,19 @@ def gerar_termos(area):
     return termos
 
 
+def escolher_fonte():
+    print("\nEscolha a fonte de dados:")
+    print("1 - Gupy (coleta atual)")
+    print("2 - InfoJobs (dados históricos)")
+    print("3 - Ambas")
+
+    while True:
+        opcao = input("\nDigite uma opção: ").strip()
+
+        if opcao in ("1", "2", "3"):
+            return opcao
+
+        print("Opção inválida!")
 
 
 def main():
