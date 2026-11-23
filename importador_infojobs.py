@@ -5,6 +5,20 @@ from pathlib import Path
 
 import pandas as pd
 
+def normalizar_texto(texto):
+    if pd.isna(texto):
+        return ""
+
+    texto = str(texto).lower()
+
+    texto = unicodedata.normalize("NFKD", texto)
+
+    texto = "".join(
+        letra for letra in texto
+        if not unicodedata.combining(letra)
+    )
+
+    return " ".join(texto.split())
 
 
 
