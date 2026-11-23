@@ -1,3 +1,4 @@
+from coletor import coletar_gupy
 
 def escolher_area():
     print("===================================")
@@ -26,16 +27,28 @@ def gerar_termos(area):
 
 
 
+
 def main():
     area = escolher_area()
-
     termos = gerar_termos(area)
 
     print(f"\nÁrea selecionada: {area}")
-    print("\nTermos que serão pesquisados:")
 
-    for termo in termos:
-        print(f"- {termo}")
+    print("\nIniciando coleta na Gupy...")
+
+    try:
+        df = coletar_gupy(termos)
+
+    except (ValueError, Exception) as erro:
+        print(f"\nErro durante a coleta: {erro}")
+        return
+
+    print("\nResumo da pesquisa:")
+    print(f"Área pesquisada: {area}")
+    print(f"Vagas coletadas: {len(df)}")
+
+
+
 
 
 
