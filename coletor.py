@@ -93,6 +93,39 @@ def coletar_gupy(termos):
 
     df = pd.DataFrame(todas_vagas).reindex(columns=colunas)
 
+
+    agora = pd.Timestamp.now(tz="UTC")
+
+    data_limite = agora - pd.Timedelta(days=180)
+
+    publicacao = pd.to_datetime(
+        df["publishedDate"],
+        errors="coerce",
+        utc=True
+    )
+
+    prazo = pd.to_datetime(
+        df["applicationDeadline"],
+        errors="coerce",
+        utc=True
+    )
+
+    publicacao_recente = (
+        publicacao.notna() & (publicacao >= data_limite)
+    )
+
+    inscricao_no_prazo = (
+        prazo.isna() | (prazo.dt.date >= agora.date())
+    )
+
+    antes = len(df)
+
+    df = df[
+        publicacao_recente & inscricao_no_prazo
+    ].copy()
+
+    print(f"Vagas removidas pelo filtro de datas: {antes - len(df)}")
+
     pasta = Path("dados")
     pasta.mkdir(exist_ok=True)
 
