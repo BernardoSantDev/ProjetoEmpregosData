@@ -1,4 +1,5 @@
 from coletor import coletar_gupy
+from importador_infojobs import importar_infojobs
 
 def escolher_area():
     print("===================================")
@@ -27,29 +28,29 @@ def gerar_termos(area):
 
 
 
-
 def main():
     area = escolher_area()
-    termos = gerar_termos(area)
+    opcao = escolher_fonte()
 
     print(f"\nÁrea selecionada: {area}")
 
-    print("\nIniciando coleta na Gupy...")
+    if opcao in ("1", "3"):
+        termos = gerar_termos(area)
 
-    try:
-        df = coletar_gupy(termos)
+        try:
+            df_gupy = coletar_gupy(termos)
+            print(f"Gupy: {len(df_gupy)} vagas.")
 
-    except (ValueError, Exception) as erro:
-        print(f"\nErro durante a coleta: {erro}")
-        return
+        except Exception as erro:
+            print(f"Erro na Gupy: {erro}")
 
-    print("\nResumo da pesquisa:")
-    print(f"Área pesquisada: {area}")
-    print(f"Vagas coletadas: {len(df)}")
+    if opcao in ("2", "3"):
+        try:
+            df_infojobs = importar_infojobs(area)
+            print(f"InfoJobs: {len(df_infojobs)} registros históricos.")
 
-
-
-
+        except Exception as erro:
+            print(f"Erro ao importar InfoJobs: {erro}")
 
 
 if __name__ == "__main__":
