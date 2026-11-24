@@ -47,6 +47,7 @@ MAPEAMENTOS = {
 COLUNAS_PADRAO = [
     "fonte",
     "id_fonte",
+    "id_unico",
     "titulo",
     "empresa",
     "cidade",
@@ -323,6 +324,42 @@ def verificar_qualidade(df):
     return df
 
 
+def criar_identificadores(df):
+    prefixos = {
+        "Gupy": "gupy",
+        "InfoJobs": "infojobs",
+        "Super Estágios": "superestagios"
+    }
+
+    ids = df["id_fonte"].astype("string").str.strip()
+
+    ids = ids.mask(ids.eq(""))
+
+    fontes = df["fonte"].map(prefixos).astype("string")
+
+    df["id_unico"] = fontes + "_" + ids
+
+    print("\nIDENTIFICADORES ÚNICOS")
+
+    print(
+        "IDs gerados:",
+        df["id_unico"].notna().sum()
+    )
+
+    print(
+        "IDs duplicados:",
+        df["id_unico"].dropna().duplicated().sum()
+    )
+
+    print(
+        "IDs ausentes:",
+        df["id_unico"].isna().sum()
+    )
+
+    return df
+
+
+
 def preparar_fontes(area):
     tabelas = {}
 
@@ -367,6 +404,7 @@ def consolidar_pesquisa(area):
         ignore_index=True
     )
 
+    df_final = criar_identificadores(df_final)
 
     colunas_texto = [
         "titulo",
