@@ -14,7 +14,7 @@ ARQUIVOS = {
 
 
 MAPEAMENTOS = {
-   
+
     "Gupy": {
         "id": "id_fonte",
         "name": "titulo",
@@ -47,14 +47,13 @@ MAPEAMENTOS = {
 }
 
 
-
 COLUNAS_PADRAO = [
     "fonte",
     "id_fonte",
     "id_unico",
     "tipo_vaga",
     "classificacao_estagio",
-    "compatibilidade_area", 
+    "compatibilidade_area",
     "motivo_compatibilidade",
     "titulo",
     "empresa",
@@ -70,10 +69,12 @@ COLUNAS_PADRAO = [
     "data_publicacao",
     "prazo_inscricao",
     "cursos",
+    "escolaridade",
+    "experiencia",
+    "termo_busca",
     "url",
     "area_pesquisada"
 ]
-
 
 
 def limpar_texto(valor):
@@ -91,7 +92,6 @@ def limpar_texto(valor):
         return pd.NA
 
     return texto
-
 
 
 def normalizar_estado(valor):
@@ -138,7 +138,6 @@ def normalizar_estado(valor):
     return estados.get(texto.casefold(), pd.NA)
 
 
-
 def normalizar_modalidade(valor):
     if pd.isna(valor):
         return pd.NA
@@ -163,7 +162,6 @@ def normalizar_modalidade(valor):
     }
 
     return modalidades.get(texto, pd.NA)
-
 
 
 def converter_reais(valor):
@@ -206,7 +204,6 @@ def extrair_bolsa(texto):
         return (valor, valor, valor)
 
     return (pd.NA, pd.NA, pd.NA)
-
 
 
 def tratar_ausente(valor):
@@ -252,23 +249,6 @@ def padronizar_datas(df):
             .astype("string")
         )
 
-    print("\nPADRONIZAÇÃO DAS DATAS")
-
-    print(
-        "Datas de publicação:",
-        df["data_publicacao"].notna().sum()
-    )
-
-    print(
-        "Prazos de inscrição:",
-        df["prazo_inscricao"].notna().sum()
-    )
-
-    print(
-        "Sem data de publicação:",
-        df["data_publicacao"].isna().sum()
-    )
-
     return df
 
 
@@ -284,36 +264,14 @@ def verificar_qualidade(df):
         "descricao",
         "salario_texto",
         "cursos",
+        "escolaridade",
+        "experiencia",
+        "termo_busca",
         "url"
     ]
 
     for coluna in colunas_texto:
         df[coluna] = df[coluna].map(tratar_ausente)
-
-    colunas_verificacao = [
-        "titulo",
-        "empresa",
-        "cidade",
-        "estado",
-        "modalidade",
-        "descricao",
-        "salario_texto",
-        "bolsa_valor",
-        "cursos",
-        "url"
-    ]
-
-    faltantes = df[colunas_verificacao].isna().sum()
-
-    relatorio = pd.DataFrame({
-        "ausentes": faltantes,
-        "percentual": (
-            faltantes / len(df) * 100
-        ).round(1) if len(df) else 0
-    })
-
-    print("\nRELATÓRIO DE QUALIDADE DOS DADOS")
-    print(relatorio.to_string())
 
     campos_essenciais = [
         "id_fonte",
@@ -323,11 +281,6 @@ def verificar_qualidade(df):
 
     df["revisao_necessaria"] = (
         df[campos_essenciais].isna().any(axis=1)
-    )
-
-    print(
-        "\nRegistros para revisão:",
-        df["revisao_necessaria"].sum()
     )
 
     return df
@@ -347,23 +300,6 @@ def criar_identificadores(df):
     fontes = df["fonte"].map(prefixos).astype("string")
 
     df["id_unico"] = fontes + "_" + ids
-
-    print("\nIDENTIFICADORES ÚNICOS")
-
-    print(
-        "IDs gerados:",
-        df["id_unico"].notna().sum()
-    )
-
-    print(
-        "IDs duplicados:",
-        df["id_unico"].dropna().duplicated().sum()
-    )
-
-    print(
-        "IDs ausentes:",
-        df["id_unico"].isna().sum()
-    )
 
     return df
 
@@ -525,10 +461,8 @@ def preparar_fontes(area):
         tabelas[fonte] = df
 
         print(f"\n{fonte}: {len(df)} vagas")
-        print(df[["id_fonte", "titulo", "empresa"]].head(2))
 
     return tabelas
-
 
 
 def consolidar_pesquisa(area):
@@ -553,7 +487,10 @@ def consolidar_pesquisa(area):
         "localizacao",
         "cidade",
         "estado",
-        "salario_texto"
+        "salario_texto",
+        "escolaridade",
+        "experiencia",
+        "termo_busca"
     ]
 
     for coluna in colunas_texto:
@@ -565,10 +502,6 @@ def consolidar_pesquisa(area):
             r"\d{1,2}\s+(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)",
             case=False
         )
-    )
-
-    print(
-        f"Descrições inválidas do InfoJobs: {mascara_datas.sum()}"
     )
 
     df_final.loc[mascara_datas, "descricao"] = pd.NA
@@ -598,38 +531,10 @@ def consolidar_pesquisa(area):
         normalizar_estado
     )
 
-    print("\nPADRONIZAÇÃO DE LOCALIZAÇÃO")
-
-    print(
-        "Cidades identificadas:",
-        df_final["cidade"].notna().sum()
-    )
-
-    print(
-        "Estados identificados:",
-        df_final["estado"].notna().sum()
-    )
-
-    print(
-        df_final[
-            ["fonte", "cidade", "estado"]
-        ].groupby("fonte", sort=False).head(2).to_string(index=False)
-    )
-
-
 
     df_final["modalidade"] = df_final["modalidade"].map(
         normalizar_modalidade
     )
-
-    print("\nPADRONIZAÇÃO DAS MODALIDADES")
-
-    print(
-        df_final["modalidade"].value_counts(
-            dropna=False
-        )
-    )
-
 
 
     colunas_bolsa = [
@@ -646,58 +551,16 @@ def consolidar_pesquisa(area):
         columns=colunas_bolsa
     )
 
-    print("\nPADRONIZAÇÃO DAS BOLSAS")
-
-    print(
-        "Valores exatos:",
-        df_final["bolsa_valor"].notna().sum()
-    )
-
-    faixas = (
-        df_final["bolsa_min"].notna()
-        & df_final["bolsa_valor"].isna()
-    )
-
-    print("Faixas de valores:", faixas.sum())
-
-    print(
-        "Sem valor numérico:",
-        df_final["bolsa_min"].isna().sum()
-    )
-
 
     df_final = verificar_qualidade(df_final)
     df_final = padronizar_datas(df_final)
 
 
-
     df_final["classificacao_estagio"] = df_final.apply(
         classificar_estagio,
         axis=1
     )
 
-    print("\nCLASSIFICAÇÃO DAS VAGAS")
-
-    print(
-        df_final["classificacao_estagio"].value_counts()
-    )
-
-    print("\nCLASSIFICAÇÃO POR PLATAFORMA")
-
-    print(
-        df_final.groupby(
-            ["fonte", "classificacao_estagio"]
-        ).size()
-    )
-
-
-    # Classificação do tipo de vaga (Etapa 5.9)
-    df_final["classificacao_estagio"] = df_final.apply(
-        classificar_estagio,
-        axis=1
-    )
-
-    # Compatibilidade com a área (Etapas 5.10 e 5.11)
     resultados_area = df_final.apply(
         lambda linha: classificar_compatibilidade(
             linha, area
@@ -713,22 +576,10 @@ def consolidar_pesquisa(area):
         resultados_area.str[1]
     )
 
-    print("\nCLASSIFICAÇÃO DE ESTÁGIOS")
-    print(
-        df_final["classificacao_estagio"].value_counts()
-    )
-
-    print("\nCOMPATIBILIDADE COM A ÁREA")
-    print(
-        df_final["compatibilidade_area"].value_counts()
-    )
-
-    print("\nCLASSIFICAÇÃO POR PLATAFORMA")
-    print(
-        pd.crosstab(
-            df_final["fonte"],
-            df_final["compatibilidade_area"]
-        )
+    df_final["revisao_necessaria"] = (
+        df_final["revisao_necessaria"]
+        | df_final["classificacao_estagio"].eq("Revisar")
+        | df_final["compatibilidade_area"].eq("Revisar")
     )
 
     arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
@@ -741,11 +592,11 @@ def consolidar_pesquisa(area):
 
     print("\nCONSOLIDAÇÃO FINALIZADA")
     print(f"Total de registros: {len(df_final)}")
+    print(f"IDs duplicados: {df_final['id_unico'].dropna().duplicated().sum()}")
+    print(f"Vagas para revisão: {int(df_final['revisao_necessaria'].sum())}")
     print(f"Arquivo salvo em: {arquivo_saida}")
 
     return df_final
-
-
 
 
 if __name__ == "__main__":
