@@ -1,5 +1,7 @@
 from pathlib import Path
 import pandas as pd
+import re
+from bs4 import BeautifulSoup
 
 
 PASTA_DADOS = Path(__file__).resolve().parent / "dados"
@@ -59,6 +61,25 @@ COLUNAS_PADRAO = [
     "area_pesquisada"
 ]
 
+
+def limpar_texto(valor):
+    if pd.isna(valor):
+        return pd.NA
+
+    texto = BeautifulSoup(
+        str(valor),
+        "html.parser"
+    ).get_text(" ", strip=True)
+
+    texto = re.sub(r"\s+", " ", texto).strip()
+
+    if not texto:
+        return pd.NA
+
+    return texto
+
+
+
 def preparar_fontes(area):
     tabelas = {}
 
@@ -102,6 +123,35 @@ def consolidar_pesquisa(area):
         tabelas.values(),
         ignore_index=True
     )
+
+
+    colunas_texto = [
+        "titulo",
+        "empresa",
+        "descricao",
+        "cursos",
+        "localizacao",
+        "cidade",
+        "estado",
+        "salario_texto"
+    ]
+
+    for coluna in colunas_texto:
+        df_final[coluna] = df_final[coluna].map(limpar_texto)
+
+    mascara_datas = (
+        df_final["fonte"].eq("InfoJobs")
+        & df_final["descricao"].fillna("").str.fullmatch(
+            r"\d{1,2}\s+(?:jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)",
+            case=False
+        )
+    )
+
+    print(
+        f"Descrições inválidas do InfoJobs: {mascara_datas.sum()}"
+    )
+
+    df_final.loc[mascara_datas, "descricao"] = pd.NA
 
     arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
 
