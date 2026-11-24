@@ -54,6 +54,8 @@ COLUNAS_PADRAO = [
     "id_unico",
     "tipo_vaga",
     "classificacao_estagio",
+    "compatibilidade_area", 
+    "motivo_compatibilidade",
     "titulo",
     "empresa",
     "cidade",
@@ -389,12 +391,112 @@ def classificar_estagio(linha):
         if not unicodedata.combining(letra)
     )
 
+    if re.search(
+        r"\b(?:supervisor|supervisora|coordenador|coordenadora|professor|professora|preceptor|preceptora)\s+(?:de\s+)?estagio\b",
+        titulo
+    ):
+        return "Revisar"
+
+
     padrao = r"\b(?:estagio|estagiari[oa]s?)\b"
 
     if re.search(padrao, titulo):
         return "Estágio identificado"
 
     return "Revisar"
+
+
+def normalizar_busca(valor):
+    if pd.isna(valor):
+        return ""
+
+    texto = str(valor).casefold()
+
+    texto = unicodedata.normalize(
+        "NFKD", texto
+    )
+
+    texto = "".join(
+        letra for letra in texto
+        if not unicodedata.combining(letra)
+    )
+
+    texto = re.sub(r"[^\w]+", " ", texto)
+
+    return " ".join(texto.split())
+
+
+def contem_area(texto, termos):
+    texto = normalizar_busca(texto)
+
+    for termo in termos:
+        termo = normalizar_busca(termo)
+
+        if not termo:
+            continue
+
+        padrao = r"\b" + re.escape(termo) + r"\b"
+
+        if re.search(padrao, texto):
+            return True
+
+    return False
+
+
+def classificar_compatibilidade(linha, area):
+    sinonimos = {
+        "ti": [
+            "ti",
+            "t i",
+            "tecnologia da informacao",
+            "informatica"
+        ],
+        "dados": [
+            "dados",
+            "ciencia de dados",
+            "analise de dados",
+            "data science",
+            "data analytics"
+        ],
+        "administracao": [
+            "administracao",
+            "administrativo"
+        ]
+    }
+
+    area_normalizada = normalizar_busca(area)
+
+    termos = sinonimos.get(
+        area_normalizada,
+        [area_normalizada]
+    )
+
+    titulo = linha["titulo"]
+    cursos = linha["cursos"]
+    descricao = linha["descricao"]
+
+    if contem_area(titulo, termos):
+        return (
+            "Exata",
+            "Área identificada no título"
+        )
+
+    if contem_area(cursos, termos):
+        return (
+            "Relacionada",
+            "Área incluída nos cursos aceitos"
+        )
+
+    if contem_area(descricao, termos):
+        return (
+            "Revisar",
+            "Área mencionada apenas na descrição"
+        )
+
+    return (
+        "Revisar",
+        "Compatibilidade não confirmada"
+    )
 
 
 def preparar_fontes(area):
@@ -588,6 +690,46 @@ def consolidar_pesquisa(area):
         ).size()
     )
 
+
+    # Classificação do tipo de vaga (Etapa 5.9)
+    df_final["classificacao_estagio"] = df_final.apply(
+        classificar_estagio,
+        axis=1
+    )
+
+    # Compatibilidade com a área (Etapas 5.10 e 5.11)
+    resultados_area = df_final.apply(
+        lambda linha: classificar_compatibilidade(
+            linha, area
+        ),
+        axis=1
+    )
+
+    df_final["compatibilidade_area"] = (
+        resultados_area.str[0]
+    )
+
+    df_final["motivo_compatibilidade"] = (
+        resultados_area.str[1]
+    )
+
+    print("\nCLASSIFICAÇÃO DE ESTÁGIOS")
+    print(
+        df_final["classificacao_estagio"].value_counts()
+    )
+
+    print("\nCOMPATIBILIDADE COM A ÁREA")
+    print(
+        df_final["compatibilidade_area"].value_counts()
+    )
+
+    print("\nCLASSIFICAÇÃO POR PLATAFORMA")
+    print(
+        pd.crosstab(
+            df_final["fonte"],
+            df_final["compatibilidade_area"]
+        )
+    )
 
     arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
 
