@@ -127,6 +127,33 @@ def normalizar_estado(valor):
 
 
 
+def normalizar_modalidade(valor):
+    if pd.isna(valor):
+        return pd.NA
+
+    texto = str(valor).strip().casefold()
+
+    modalidades = {
+        "on-site": "Presencial",
+        "onsite": "Presencial",
+        "on site": "Presencial",
+        "presencial": "Presencial",
+        "in person": "Presencial",
+
+        "remote": "Remoto",
+        "remoto": "Remoto",
+        "home office": "Remoto",
+        "teletrabalho": "Remoto",
+
+        "hybrid": "Híbrido",
+        "híbrido": "Híbrido",
+        "hibrido": "Híbrido"
+    }
+
+    return modalidades.get(texto, pd.NA)
+
+
+
 def preparar_fontes(area):
     tabelas = {}
 
@@ -242,6 +269,21 @@ def consolidar_pesquisa(area):
             ["fonte", "cidade", "estado"]
         ].groupby("fonte", sort=False).head(2).to_string(index=False)
     )
+
+
+
+    df_final["modalidade"] = df_final["modalidade"].map(
+        normalizar_modalidade
+    )
+
+    print("\nPADRONIZAÇÃO DAS MODALIDADES")
+
+    print(
+        df_final["modalidade"].value_counts(
+            dropna=False
+        )
+    )
+
 
     arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
 
