@@ -18,6 +18,8 @@ MAPEAMENTOS = {
         "id": "id_fonte",
         "name": "titulo",
         "careerPageName": "empresa",
+        "city": "cidade",
+        "state": "estado",
         "description": "descricao",
         "workplaceType": "modalidade",
         "publishedDate": "data_publicacao",
@@ -77,6 +79,51 @@ def limpar_texto(valor):
         return pd.NA
 
     return texto
+
+
+
+def normalizar_estado(valor):
+    if pd.isna(valor):
+        return pd.NA
+
+    texto = str(valor).strip()
+
+    estados = {
+        "acre": "AC",
+        "alagoas": "AL",
+        "amapá": "AP",
+        "amazonas": "AM",
+        "bahia": "BA",
+        "ceará": "CE",
+        "distrito federal": "DF",
+        "espírito santo": "ES",
+        "goiás": "GO",
+        "maranhão": "MA",
+        "mato grosso": "MT",
+        "mato grosso do sul": "MS",
+        "minas gerais": "MG",
+        "pará": "PA",
+        "paraíba": "PB",
+        "paraná": "PR",
+        "pernambuco": "PE",
+        "piauí": "PI",
+        "rio de janeiro": "RJ",
+        "rio grande do norte": "RN",
+        "rio grande do sul": "RS",
+        "rondônia": "RO",
+        "roraima": "RR",
+        "santa catarina": "SC",
+        "são paulo": "SP",
+        "sergipe": "SE",
+        "tocantins": "TO"
+    }
+
+    siglas = set(estados.values())
+
+    if texto.upper() in siglas:
+        return texto.upper()
+
+    return estados.get(texto.casefold(), pd.NA)
 
 
 
@@ -152,6 +199,49 @@ def consolidar_pesquisa(area):
     )
 
     df_final.loc[mascara_datas, "descricao"] = pd.NA
+
+
+    mascara_infojobs = df_final["fonte"].eq("InfoJobs")
+
+    localizacoes = df_final.loc[
+        mascara_infojobs, "localizacao"
+    ].str.extract(
+        r"^\s*(.*?)\s+-\s+([A-Za-z]{2})\s*$"
+    )
+
+    df_final.loc[
+        mascara_infojobs, "cidade"
+    ] = localizacoes[0]
+
+    df_final.loc[
+        mascara_infojobs, "estado"
+    ] = localizacoes[1]
+
+    df_final["cidade"] = df_final["cidade"].map(
+        limpar_texto
+    )
+
+    df_final["estado"] = df_final["estado"].map(
+        normalizar_estado
+    )
+
+    print("\nPADRONIZAÇÃO DE LOCALIZAÇÃO")
+
+    print(
+        "Cidades identificadas:",
+        df_final["cidade"].notna().sum()
+    )
+
+    print(
+        "Estados identificados:",
+        df_final["estado"].notna().sum()
+    )
+
+    print(
+        df_final[
+            ["fonte", "cidade", "estado"]
+        ].groupby("fonte", sort=False).head(2).to_string(index=False)
+    )
 
     arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
 
