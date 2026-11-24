@@ -224,6 +224,44 @@ def tratar_ausente(valor):
     return valor
 
 
+def padronizar_datas(df):
+    colunas_datas = [
+        "data_publicacao",
+        "prazo_inscricao"
+    ]
+
+    for coluna in colunas_datas:
+        datas = pd.to_datetime(
+            df[coluna],
+            errors="coerce",
+            utc=True
+        )
+
+        df[coluna] = (
+            datas.dt.strftime("%Y-%m-%d")
+            .astype("string")
+        )
+
+    print("\nPADRONIZAÇÃO DAS DATAS")
+
+    print(
+        "Datas de publicação:",
+        df["data_publicacao"].notna().sum()
+    )
+
+    print(
+        "Prazos de inscrição:",
+        df["prazo_inscricao"].notna().sum()
+    )
+
+    print(
+        "Sem data de publicação:",
+        df["data_publicacao"].isna().sum()
+    )
+
+    return df
+
+
 def verificar_qualidade(df):
     colunas_texto = [
         "id_fonte",
@@ -452,7 +490,7 @@ def consolidar_pesquisa(area):
 
 
     df_final = verificar_qualidade(df_final)
-
+    df_final = padronizar_datas(df_final)
 
     arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
 
