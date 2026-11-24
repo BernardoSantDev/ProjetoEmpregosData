@@ -271,11 +271,6 @@ def coletar_detalhes(link):
         "url": url
     }
 
-    print("\nDADOS DA VAGA:")
-
-    for campo, valor in vaga.items():
-        print(f"{campo}: {valor}")
-
     return vaga
 
 
@@ -325,9 +320,6 @@ def salvar_vaga(vaga):
         index=False,
         encoding="utf-8-sig"
     )
-
-    print(f"\nArquivo salvo em: {arquivo}")
-    print(f"Total de vagas únicas salvas: {len(df)}")
 
     return df
 
