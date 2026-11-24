@@ -1,8 +1,10 @@
 
 from pathlib import Path
-
+import time
+import requests
 from coletor import coletar_gupy
 from coletor_infojobs import coletar_infojobs
+from padronizar import consolidar_pesquisa
 
 from coletor_superestagios import (
     encontrar_url_curso,
@@ -78,6 +80,7 @@ def pesquisar_infojobs(area):
     return df
 
 
+
 def pesquisar_superestagios(area):
     print("\nIniciando pesquisa no Super Estágios...")
 
@@ -89,30 +92,59 @@ def pesquisar_superestagios(area):
 
     df_links = listar_vagas(url_curso)
 
-    print(f"Anúncios na listagem: {len(df_links)}")
+    total = len(df_links)
+
+    print(f"Anúncios encontrados: {total}")
 
     if df_links.empty:
         print("Nenhum anúncio encontrado.")
         return None
 
-    print("\nPrimeiros anúncios encontrados:")
+    df = None
 
-    print(
-        df_links.head(10).to_string(index=False)
-    )
+    for indice, anuncio in df_links.iterrows():
+        numero = indice + 1
 
-    primeira = df_links.iloc[0]
+        try:
+            vaga = coletar_detalhes(anuncio["url"])
 
-    print("\nConsultando uma vaga para teste...")
+            vaga["titulo"] = anuncio["titulo"]
+            vaga["area_pesquisada"] = area
 
-    vaga = coletar_detalhes(primeira["url"])
+            resultado = salvar_vaga(vaga)
 
-    vaga["titulo"] = primeira["titulo"]
-    vaga["area_pesquisada"] = area
+            if resultado is not None:
+                df = resultado
 
-    df = salvar_vaga(vaga)
+                print(
+                    f"[{numero}/{total}] "
+                    f"Vaga {anuncio['id']} salva."
+                )
+
+        except requests.HTTPError as erro:
+            status = (
+                erro.response.status_code
+                if erro.response is not None
+                else None
+            )
+
+            print(
+                f"Erro HTTP na vaga {anuncio['id']}: {status}"
+            )
+
+            if status in (403, 429):
+                print("Acesso limitado. Coleta interrompida.")
+                break
+
+        except (requests.RequestException, ValueError, OSError) as erro:
+            print(f"Erro na vaga {anuncio['id']}: {erro}")
+
+        if numero < total:
+            time.sleep(2)
 
     return df
+
+
 
 
 def limpar_resultados():
@@ -200,9 +232,27 @@ def main():
 
         print(f"\nÁrea selecionada: {area}")
 
+        
         resultados = executar_pesquisa(area, opcao)
 
         mostrar_resumo(area, resultados)
+
+        print("\nIniciando padronização...")
+
+        try:
+            df_padronizado = consolidar_pesquisa(area)
+
+            if df_padronizado is None:
+                print("Nenhum dado disponível para padronizar.")
+            else:
+                print(
+                    f"Padronização concluída: "
+                    f"{len(df_padronizado)} registros."
+                )
+
+        except Exception as erro:
+            print(f"Erro durante a padronização: {erro}")
+
 
         while True:
             continuar = input(
