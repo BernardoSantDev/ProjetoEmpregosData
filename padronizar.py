@@ -56,6 +56,8 @@ COLUNAS_PADRAO = [
     "descricao",
     "salario_texto",
     "bolsa_valor",
+    "bolsa_min",
+    "bolsa_max",
     "data_publicacao",
     "prazo_inscricao",
     "cursos",
@@ -151,6 +153,49 @@ def normalizar_modalidade(valor):
     }
 
     return modalidades.get(texto, pd.NA)
+
+
+
+def converter_reais(valor):
+    valor = valor.replace(".", "")
+    valor = valor.replace(",", ".")
+    return float(valor)
+
+
+def extrair_bolsa(texto):
+    if pd.isna(texto):
+        return (pd.NA, pd.NA, pd.NA)
+
+    texto = str(texto).strip()
+
+    padrao = r"R\$\s*([\d.]+,\d{2})"
+
+    faixa = re.fullmatch(
+        rf"{padrao}\s+a\s+{padrao}",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if faixa:
+        minimo = converter_reais(faixa.group(1))
+        maximo = converter_reais(faixa.group(2))
+
+        if minimo <= maximo:
+            return (pd.NA, minimo, maximo)
+
+        return (pd.NA, pd.NA, pd.NA)
+
+    unico = re.fullmatch(
+        padrao,
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if unico:
+        valor = converter_reais(unico.group(1))
+        return (valor, valor, valor)
+
+    return (pd.NA, pd.NA, pd.NA)
 
 
 
@@ -284,6 +329,40 @@ def consolidar_pesquisa(area):
         )
     )
 
+
+
+    colunas_bolsa = [
+        "bolsa_valor",
+        "bolsa_min",
+        "bolsa_max"
+    ]
+
+    df_final[colunas_bolsa] = pd.DataFrame(
+        df_final["salario_texto"].apply(
+            extrair_bolsa
+        ).tolist(),
+        index=df_final.index,
+        columns=colunas_bolsa
+    )
+
+    print("\nPADRONIZAÇÃO DAS BOLSAS")
+
+    print(
+        "Valores exatos:",
+        df_final["bolsa_valor"].notna().sum()
+    )
+
+    faixas = (
+        df_final["bolsa_min"].notna()
+        & df_final["bolsa_valor"].isna()
+    )
+
+    print("Faixas de valores:", faixas.sum())
+
+    print(
+        "Sem valor numérico:",
+        df_final["bolsa_min"].isna().sum()
+    )
 
     arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
 
