@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 import re
 from bs4 import BeautifulSoup
-
+import unicodedata
 
 PASTA_DADOS = Path(__file__).resolve().parent / "dados"
 
@@ -14,18 +14,21 @@ ARQUIVOS = {
 
 
 MAPEAMENTOS = {
+   
     "Gupy": {
         "id": "id_fonte",
         "name": "titulo",
         "careerPageName": "empresa",
         "city": "cidade",
         "state": "estado",
+        "type": "tipo_vaga",
         "description": "descricao",
         "workplaceType": "modalidade",
         "publishedDate": "data_publicacao",
         "applicationDeadline": "prazo_inscricao",
         "jobUrl": "url"
     },
+
 
     "InfoJobs": {
         "id": "id_fonte",
@@ -44,10 +47,13 @@ MAPEAMENTOS = {
 }
 
 
+
 COLUNAS_PADRAO = [
     "fonte",
     "id_fonte",
     "id_unico",
+    "tipo_vaga",
+    "classificacao_estagio",
     "titulo",
     "empresa",
     "cidade",
@@ -65,6 +71,7 @@ COLUNAS_PADRAO = [
     "url",
     "area_pesquisada"
 ]
+
 
 
 def limpar_texto(valor):
@@ -359,6 +366,36 @@ def criar_identificadores(df):
     return df
 
 
+def classificar_estagio(linha):
+    tipo = linha["tipo_vaga"]
+    titulo = linha["titulo"]
+
+    if pd.notna(tipo):
+        if str(tipo).strip() == "vacancy_type_internship":
+            return "Estágio identificado"
+
+    if pd.isna(titulo):
+        return "Revisar"
+
+    titulo = str(titulo).casefold()
+
+    titulo = unicodedata.normalize(
+        "NFKD",
+        titulo
+    )
+
+    titulo = "".join(
+        letra for letra in titulo
+        if not unicodedata.combining(letra)
+    )
+
+    padrao = r"\b(?:estagio|estagiari[oa]s?)\b"
+
+    if re.search(padrao, titulo):
+        return "Estágio identificado"
+
+    return "Revisar"
+
 
 def preparar_fontes(area):
     tabelas = {}
@@ -529,6 +566,28 @@ def consolidar_pesquisa(area):
 
     df_final = verificar_qualidade(df_final)
     df_final = padronizar_datas(df_final)
+
+
+
+    df_final["classificacao_estagio"] = df_final.apply(
+        classificar_estagio,
+        axis=1
+    )
+
+    print("\nCLASSIFICAÇÃO DAS VAGAS")
+
+    print(
+        df_final["classificacao_estagio"].value_counts()
+    )
+
+    print("\nCLASSIFICAÇÃO POR PLATAFORMA")
+
+    print(
+        df_final.groupby(
+            ["fonte", "classificacao_estagio"]
+        ).size()
+    )
+
 
     arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
 
