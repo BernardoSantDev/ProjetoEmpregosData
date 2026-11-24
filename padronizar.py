@@ -89,10 +89,41 @@ def preparar_fontes(area):
 
     return tabelas
 
+
+
+def consolidar_pesquisa(area):
+    tabelas = preparar_fontes(area)
+
+    if not tabelas:
+        print("Nenhuma tabela disponível.")
+        return None
+
+    df_final = pd.concat(
+        tabelas.values(),
+        ignore_index=True
+    )
+
+    arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
+
+    df_final.to_csv(
+        arquivo_saida,
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    print("\nCONSOLIDAÇÃO FINALIZADA")
+    print(f"Total de registros: {len(df_final)}")
+    print(f"Arquivo salvo em: {arquivo_saida}")
+
+    return df_final
+
+
+
+
 if __name__ == "__main__":
     area = input("Área pesquisada: ").strip()
 
     if area:
-        preparar_fontes(area)
+        consolidar_pesquisa(area)
     else:
         print("Informe uma área válida.")
