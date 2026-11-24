@@ -199,6 +199,92 @@ def extrair_bolsa(texto):
 
 
 
+def tratar_ausente(valor):
+    if pd.isna(valor):
+        return pd.NA
+
+    if isinstance(valor, str):
+        texto = valor.strip()
+
+        valores_ausentes = {
+            "",
+            "nan",
+            "none",
+            "null",
+            "n/a",
+            "não informado",
+            "nao informado"
+        }
+
+        if texto.casefold() in valores_ausentes:
+            return pd.NA
+
+        return texto
+
+    return valor
+
+
+def verificar_qualidade(df):
+    colunas_texto = [
+        "id_fonte",
+        "titulo",
+        "empresa",
+        "cidade",
+        "estado",
+        "localizacao",
+        "modalidade",
+        "descricao",
+        "salario_texto",
+        "cursos",
+        "url"
+    ]
+
+    for coluna in colunas_texto:
+        df[coluna] = df[coluna].map(tratar_ausente)
+
+    colunas_verificacao = [
+        "titulo",
+        "empresa",
+        "cidade",
+        "estado",
+        "modalidade",
+        "descricao",
+        "salario_texto",
+        "bolsa_valor",
+        "cursos",
+        "url"
+    ]
+
+    faltantes = df[colunas_verificacao].isna().sum()
+
+    relatorio = pd.DataFrame({
+        "ausentes": faltantes,
+        "percentual": (
+            faltantes / len(df) * 100
+        ).round(1) if len(df) else 0
+    })
+
+    print("\nRELATÓRIO DE QUALIDADE DOS DADOS")
+    print(relatorio.to_string())
+
+    campos_essenciais = [
+        "id_fonte",
+        "titulo",
+        "url"
+    ]
+
+    df["revisao_necessaria"] = (
+        df[campos_essenciais].isna().any(axis=1)
+    )
+
+    print(
+        "\nRegistros para revisão:",
+        df["revisao_necessaria"].sum()
+    )
+
+    return df
+
+
 def preparar_fontes(area):
     tabelas = {}
 
@@ -363,6 +449,10 @@ def consolidar_pesquisa(area):
         "Sem valor numérico:",
         df_final["bolsa_min"].isna().sum()
     )
+
+
+    df_final = verificar_qualidade(df_final)
+
 
     arquivo_saida = PASTA_DADOS / "vagas_padronizadas.csv"
 
