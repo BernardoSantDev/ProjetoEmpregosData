@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 import re
 import unicodedata
+from itertools import combinations
 
 
 PASTA_DADOS = Path(__file__).resolve().parent / "dados"
@@ -70,6 +71,95 @@ def identificar_duplicatas():
         )
 
     return candidatos
+
+
+
+def comparar_entre_plataformas():
+    arquivo = PASTA_DADOS / "vagas_padronizadas.csv"
+
+    df = pd.read_csv(
+        arquivo,
+        encoding="utf-8-sig",
+        dtype={"id_unico": "string"}
+    )
+
+    if df.empty:
+        print("Nenhuma vaga para comparar.")
+        return pd.DataFrame()
+
+    print("\nDUPLICATAS ENTRE PLATAFORMAS")
+    print("Fontes encontradas:", ", ".join(
+        sorted(df["fonte"].dropna().unique())
+    ))
+
+    if df["fonte"].nunique() < 2:
+        print("Comparação não realizada: apenas uma fonte.")
+        return pd.DataFrame()
+
+    campos = ["titulo", "empresa", "cidade", "estado"]
+
+    for campo in campos:
+        df[f"chave_{campo}"] = df[campo].map(
+            normalizar_texto
+        )
+
+    empresas_genericas = {
+        "",
+        "confidencial",
+        "empresa confidencial",
+        "nao informado",
+        "sigilosa"
+    }
+
+    validas = (
+        ~df["chave_empresa"].isin(empresas_genericas)
+        & df["chave_titulo"].ne("")
+        & df["chave_cidade"].ne("")
+        & df["chave_estado"].ne("")
+    )
+
+    chaves = [f"chave_{campo}" for campo in campos]
+    pares = []
+
+    for _, grupo in df.loc[validas].groupby(
+        chaves, sort=False
+    ):
+        if grupo["fonte"].nunique() < 2:
+            continue
+
+        for vaga1, vaga2 in combinations(
+            grupo.to_dict("records"), 2
+        ):
+            if vaga1["fonte"] == vaga2["fonte"]:
+                continue
+
+            pares.append({
+                "id_1": vaga1["id_unico"],
+                "fonte_1": vaga1["fonte"],
+                "id_2": vaga2["id_unico"],
+                "fonte_2": vaga2["fonte"],
+                "titulo": vaga1["titulo"],
+                "empresa": vaga1["empresa"],
+                "cidade": vaga1["cidade"],
+                "estado": vaga1["estado"],
+                "url_1": vaga1["url"],
+                "url_2": vaga2["url"]
+            })
+
+    candidatos = pd.DataFrame(pares)
+
+    print("Pares candidatos:", len(candidatos))
+
+    if not candidatos.empty:
+        print(
+            candidatos[
+                ["id_1", "id_2", "titulo",
+                 "empresa", "cidade", "estado"]
+            ].to_string(index=False)
+        )
+
+    return candidatos
+
 
 
 if __name__ == "__main__":
