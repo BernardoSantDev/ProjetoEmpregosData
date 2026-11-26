@@ -164,3 +164,4 @@ def comparar_entre_plataformas():
 
 if __name__ == "__main__":
     identificar_duplicatas()
+    comparar_entre_plataformas()
