@@ -4,6 +4,7 @@ import pandas as pd
 import re
 import unicodedata
 from itertools import combinations
+from difflib import SequenceMatcher
 
 
 PASTA_DADOS = Path(__file__).resolve().parent / "dados"
@@ -161,7 +162,71 @@ def comparar_entre_plataformas():
     return candidatos
 
 
+def comparar_similaridade():
+    arquivo = PASTA_DADOS / "vagas_padronizadas.csv"
+
+    df = pd.read_csv(
+        arquivo,
+        encoding="utf-8-sig",
+        dtype={"id_unico": "string"}
+    )
+
+    campos = ["titulo", "cidade", "estado"]
+
+    for campo in campos:
+        df[f"chave_{campo}"] = df[campo].map(
+            normalizar_texto
+        )
+
+    pares = []
+
+    grupos = df.groupby([
+        "chave_cidade",
+        "chave_estado"
+    ])
+
+    for _, grupo in grupos:
+        vagas = grupo.to_dict("records")
+
+        for vaga1, vaga2 in combinations(vagas, 2):
+            if vaga1["fonte"] == vaga2["fonte"]:
+                continue
+
+            similaridade = SequenceMatcher(
+                None,
+                vaga1["chave_titulo"],
+                vaga2["chave_titulo"]
+            ).ratio()
+
+            if similaridade >= 0.70:
+                pares.append({
+                    "id_1": vaga1["id_unico"],
+                    "id_2": vaga2["id_unico"],
+                    "fonte_1": vaga1["fonte"],
+                    "fonte_2": vaga2["fonte"],
+                    "cidade": vaga1["cidade"],
+                    "similaridade": round(
+                        similaridade * 100, 1
+                    )
+                })
+
+    candidatos = pd.DataFrame(pares)
+
+    print("\nANÁLISE DE SIMILARIDADE")
+    print(f"Pares candidatos: {len(candidatos)}")
+
+    if not candidatos.empty:
+        candidatos = candidatos.sort_values(
+            "similaridade",
+            ascending=False
+        )
+
+        print(candidatos.to_string(index=False))
+
+    return candidatos
+
 
 if __name__ == "__main__":
     identificar_duplicatas()
     comparar_entre_plataformas()
+    comparar_similaridade()
