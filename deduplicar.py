@@ -226,7 +226,95 @@ def comparar_similaridade():
     return candidatos
 
 
+
+def avaliar_candidatos(candidatos):
+    if candidatos.empty:
+        print("\nNenhum candidato para avaliar.")
+        return pd.DataFrame()
+
+    arquivo = PASTA_DADOS / "vagas_padronizadas.csv"
+
+    df = pd.read_csv(
+        arquivo,
+        encoding="utf-8-sig",
+        dtype={"id_unico": "string"}
+    )
+
+    df = df.set_index("id_unico")
+
+    empresas_genericas = {
+        "",
+        "confidencial",
+        "empresa confidencial",
+        "pagina de carreira",
+        "nao informado",
+        "sigilosa"
+    }
+
+    resultados = []
+
+    for _, par in candidatos.iterrows():
+        vaga1 = df.loc[par["id_1"]]
+        vaga2 = df.loc[par["id_2"]]
+
+        empresa1 = normalizar_texto(vaga1["empresa"])
+        empresa2 = normalizar_texto(vaga2["empresa"])
+
+        if (
+            empresa1 in empresas_genericas
+            or empresa2 in empresas_genericas
+        ):
+            situacao = "Empresa não confirmada"
+
+        elif empresa1 != empresa2:
+            situacao = "Empresas diferentes"
+
+        else:
+            situacao = "Empresa igual"
+
+        resultados.append({
+            "id_1": par["id_1"],
+            "id_2": par["id_2"],
+            "fonte_1": vaga1["fonte"],
+            "fonte_2": vaga2["fonte"],
+            "titulo_1": vaga1["titulo"],
+            "titulo_2": vaga2["titulo"],
+            "empresa_1": vaga1["empresa"],
+            "empresa_2": vaga2["empresa"],
+            "cidade": vaga1["cidade"],
+            "estado": vaga1["estado"],
+            "similaridade": par["similaridade"],
+            "bolsa_1": vaga1["salario_texto"],
+            "bolsa_2": vaga2["salario_texto"],
+            "situacao": situacao,
+            "url_1": vaga1["url"],
+            "url_2": vaga2["url"]
+        })
+
+    revisao = pd.DataFrame(resultados)
+
+    arquivo_saida = (
+        PASTA_DADOS / "duplicatas_para_revisao.csv"
+    )
+
+    revisao.to_csv(
+        arquivo_saida,
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    print("\nAVALIAÇÃO DOS CANDIDATOS")
+    print(f"Pares analisados: {len(revisao)}")
+
+    print(revisao["situacao"].value_counts())
+
+    print(f"\nRelatório salvo: {arquivo_saida}")
+
+    return revisao
+
+
 if __name__ == "__main__":
     identificar_duplicatas()
     comparar_entre_plataformas()
-    comparar_similaridade()
+    candidatos = comparar_similaridade()
+    avaliar_candidatos(candidatos)
