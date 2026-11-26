@@ -236,6 +236,9 @@ def coletar_detalhes(link):
 
     texto = soup.get_text(" ", strip=True)
 
+    if "esta vaga nao esta mais disponivel" in normalizar_texto(texto):
+        raise ValueError("Vaga não está mais disponível")
+
     vaga = {
         "id": extrair_campo(
             texto, "Número da vaga", "Empresa"
@@ -268,8 +271,25 @@ def coletar_detalhes(link):
             "Benefícios"
         ),
 
-        "url": url
+        "url": url,
+
+
+        "tipo_vaga": (
+            "vacancy_type_internship"
+            if soup.title
+            and normalizar_texto(
+                soup.title.get_text()
+            ).startswith("estagio em ")
+            else None
+        )
     }
+
+
+    if not vaga.get("id"):
+        raise ValueError(
+            "ID não identificado nos detalhes da vaga"
+        )
+
 
     return vaga
 

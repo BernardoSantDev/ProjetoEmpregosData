@@ -5,6 +5,7 @@ import requests
 from coletor import coletar_gupy
 from coletor_infojobs import coletar_infojobs
 from padronizar import consolidar_pesquisa
+from deduplicar import gerar_vagas_unicas
 
 from coletor_superestagios import (
     encontrar_url_curso,
@@ -156,7 +157,8 @@ def limpar_resultados():
         "vagas_infojobs_filtradas.csv",
         "vagas_superestagios.csv",
         "links_superestagios.csv",
-        "vagas_padronizadas.csv"
+        "vagas_padronizadas.csv",
+        "vagas_unicas.csv"
     ]
 
     for nome in arquivos:
@@ -239,19 +241,29 @@ def main():
 
         print("\nIniciando padronização...")
 
+        
         try:
             df_padronizado = consolidar_pesquisa(area)
 
             if df_padronizado is None:
-                print("Nenhum dado disponível para padronizar.")
+                print("Nenhum dado disponível para processar.")
+
             else:
                 print(
                     f"Padronização concluída: "
                     f"{len(df_padronizado)} registros."
                 )
 
+                df_unicas = gerar_vagas_unicas()
+
+                print(
+                    f"Processamento finalizado: "
+                    f"{len(df_unicas)} oportunidades."
+                )
+
         except Exception as erro:
-            print(f"Erro durante a padronização: {erro}")
+            print(f"Erro durante o processamento: {erro}")
+
 
 
         while True:
