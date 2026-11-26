@@ -8,7 +8,22 @@ import unicodedata
 PASTA_DADOS = Path(__file__).resolve().parent / "dados"
 
 
+def normalizar_texto(valor):
+    if pd.isna(valor):
+        return ""
 
+    texto = unicodedata.normalize(
+        "NFKD", str(valor).casefold()
+    )
+
+    texto = "".join(
+        letra for letra in texto
+        if not unicodedata.combining(letra)
+    )
+
+    texto = re.sub(r"[^\w]+", " ", texto)
+
+    return " ".join(texto.split())
 
 
 def identificar_duplicatas():
