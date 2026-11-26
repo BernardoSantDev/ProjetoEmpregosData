@@ -1,5 +1,6 @@
 
 from pathlib import Path
+import json
 import pandas as pd
 import re
 import unicodedata
@@ -313,8 +314,130 @@ def avaliar_candidatos(candidatos):
     return revisao
 
 
+
+
+def gerar_vagas_unicas():
+    entrada = PASTA_DADOS / "vagas_padronizadas.csv"
+    saida = PASTA_DADOS / "vagas_unicas.csv"
+
+    df = pd.read_csv(
+        entrada,
+        encoding="utf-8-sig",
+        dtype={"id_fonte": "string", "id_unico": "string", "url": "string"}
+    ).reset_index(drop=True)
+
+    colunas_necessarias = [
+        "fonte", "id_fonte", "id_unico", "url", "titulo",
+        "empresa", "cidade", "estado", "descricao"
+    ]
+    ausentes = [c for c in colunas_necessarias if c not in df.columns]
+    if ausentes:
+        raise ValueError(f"Colunas ausentes no CSV: {', '.join(ausentes)}")
+
+    if df.empty:
+        for coluna in ("fontes_origem", "urls_origem", "ids_origem", "qtd_anuncios"):
+            df[coluna] = pd.Series(dtype="object")
+        df.to_csv(saida, index=False, encoding="utf-8-sig")
+        print("\nNenhuma vaga disponível para deduplicar.")
+        return df
+
+    pai = list(range(len(df)))
+    fontes_grupo = [{str(fonte)} for fonte in df["fonte"]]
+
+    def raiz(indice):
+        while pai[indice] != indice:
+            pai[indice] = pai[pai[indice]]
+            indice = pai[indice]
+        return indice
+
+    def unir(i, j, entre_fontes=False):
+        a, b = raiz(i), raiz(j)
+        if a == b:
+            return
+        if entre_fontes and fontes_grupo[a] & fontes_grupo[b]:
+            return
+        pai[b] = a
+        fontes_grupo[a].update(fontes_grupo[b])
+
+
+    vistos = {}
+    for i, vaga in df.iterrows():
+        chaves = []
+        if pd.notna(vaga["id_fonte"]) and str(vaga["id_fonte"]).strip():
+            chaves.append((
+                "id", str(vaga["fonte"]), str(vaga["id_fonte"]).strip()
+            ))
+        if pd.notna(vaga["url"]) and str(vaga["url"]).strip():
+            chaves.append(("url", str(vaga["url"]).strip().rstrip("/")))
+
+        for chave in chaves:
+            if chave in vistos:
+                unir(i, vistos[chave])
+            else:
+                vistos[chave] = i
+
+
+    empresas_genericas = {
+        "", "confidencial", "empresa confidencial", "pagina de carreira",
+        "nao informado", "sigilosa"
+    }
+    assinaturas = {}
+    campos = ["titulo", "empresa", "cidade", "estado", "descricao"]
+
+    for i, vaga in df.iterrows():
+        chave = tuple(normalizar_texto(vaga[campo]) for campo in campos)
+        titulo, empresa, cidade, estado, descricao = chave
+        if (
+            empresa in empresas_genericas
+            or not all((titulo, cidade, estado))
+            or len(descricao) < 100
+        ):
+            continue
+        assinaturas.setdefault(chave, []).append(i)
+
+    for indices in assinaturas.values():
+        if len({df.at[i, "fonte"] for i in indices}) != len(indices):
+            continue
+        for i in indices[1:]:
+            unir(indices[0], i, entre_fontes=True)
+
+    grupos = {}
+    for i in range(len(df)):
+        grupos.setdefault(raiz(i), []).append(i)
+
+    campos_importantes = [
+        "titulo", "empresa", "descricao", "salario_texto", "cursos"
+    ]
+    campos_importantes = [c for c in campos_importantes if c in df.columns]
+    registros = []
+
+    for indices in grupos.values():
+        melhor = max(
+            indices,
+            key=lambda i: df.loc[i, campos_importantes].notna().sum()
+        )
+        registro = df.loc[melhor].to_dict()
+
+        fontes = sorted(df.loc[indices, "fonte"].dropna().unique().tolist())
+        urls = list(dict.fromkeys(df.loc[indices, "url"].dropna().tolist()))
+        ids = list(dict.fromkeys(df.loc[indices, "id_unico"].dropna().tolist()))
+
+        registro["fontes_origem"] = json.dumps(fontes, ensure_ascii=False)
+        registro["urls_origem"] = json.dumps(urls, ensure_ascii=False)
+        registro["ids_origem"] = json.dumps(ids, ensure_ascii=False)
+        registro["qtd_anuncios"] = len(indices)
+        registros.append(registro)
+
+    resultado = pd.DataFrame(registros)
+    resultado.to_csv(saida, index=False, encoding="utf-8-sig")
+
+    print("\nDEDUPLICAÇÃO AUTOMÁTICA")
+    print(f"Anúncios de entrada: {len(df)}")
+    print(f"Anúncios consolidados: {len(df) - len(resultado)}")
+    print(f"Oportunidades no resultado: {len(resultado)}")
+    print(f"Arquivo salvo: {saida}")
+    return resultado
+
+
 if __name__ == "__main__":
-    identificar_duplicatas()
-    comparar_entre_plataformas()
-    candidatos = comparar_similaridade()
-    avaliar_candidatos(candidatos)
+    gerar_vagas_unicas()
